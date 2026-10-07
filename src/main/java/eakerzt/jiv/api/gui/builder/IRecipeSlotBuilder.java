@@ -106,6 +106,36 @@ public interface IRecipeSlotBuilder extends IIngredientAcceptor<IRecipeSlotBuild
 	IRecipeSlotBuilder setFluidRenderer(long capacity, boolean showCapacity, int width, int height);
 
 	/**
+	 * Enables a compact fluid amount label at the bottom-right of this slot. Disabled by default.
+	 * Reads the currently displayed fluid, including cycling candidates and display overrides.
+	 * Non-fluid and non-positive amounts draw nothing. Uses mB without a suffix below 10,000,
+	 * then integer K/M/G/T/P/E abbreviations. Text scales down to fit the slot.
+	 * Independent of renderer configuration and tooltip capacity; call order does not matter.
+	 * Drawn after a custom overlay without replacing it. Item count rendering is unchanged.
+	 */
+	IRecipeSlotBuilder setShowFluidAmount(boolean showFluidAmount);
+
+	/** Marks this slot as non-consumed, with a native marker and tooltip. Disabled by default.
+	 * Applies to any ingredient and role; this is display metadata, not gameplay logic.
+	 * Draws a green infinity marker inside the top-left of non-empty slots and adds a tooltip.
+	 * Independent of custom overlays, item counts and fluid amount labels.
+	 */
+	IRecipeSlotBuilder setNonConsumed(boolean nonConsumed);
+
+	/** Sets a finite probability in [0,1] and enables its native label and tooltip.
+	 * Supports item/fluid inputs and outputs. A probability of one hides the compact label,
+	 * but keeps the tooltip. Off by default; each call enables it again.
+	 * Reserve six pixels above the slot for the compact label; the tooltip keeps full precision.
+	 * Does not replace custom overlays or item/fluid counts. Empty slots have no marker or metadata tooltip.
+	 * This does not perform consumption, production or random rolls.
+	 * @throws IllegalArgumentException if chance is non-finite or outside [0,1]
+	 */
+	IRecipeSlotBuilder setChance(double chance);
+
+	/** Shows or hides the configured probability label and tooltip without changing its value. */
+	IRecipeSlotBuilder setShowChance(boolean showChance);
+
+	/**
 	 * Set the properties of this slot's fluid renderer.
 	 * This will be used to render any fluid ingredients in the slot.
 	 *

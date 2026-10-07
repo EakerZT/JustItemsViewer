@@ -1,4 +1,6 @@
 {
+  "jiv.tooltip.recipe.not_consumed": "不消耗",
+  "jiv.tooltip.recipe.chance": "概率：%s%%",
   "jiv.message.config.unavailable": "配置界面暂时无法打开，可直接编辑配置文件。",
   "_comment": "Tooltips",
   "jiv.tooltip.config": "JEI配置",

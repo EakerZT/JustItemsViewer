@@ -1,0 +1,13 @@
+# Copy these entries into C:/Users/80982/.gradle/gradle.properties.
+# Use the username/password from a Central Portal user token, not your login.
+# Keep the filled-in file and exported private key outside the project.
+mavenCentralUsername=REPLACE_WITH_TOKEN_USERNAME
+mavenCentralPassword=REPLACE_WITH_TOKEN_PASSWORD
+
+# Sign through GnuPG so signatures include the full issuer fingerprint.
+# Local adapter for Git's MSYS GPG; it converts Windows paths to MSYS paths.
+# With native GnuPG, set this to the native gpg.exe instead.
+signing.gnupg.executable=C:/Users/80982/.gradle/central-gpg.cmd
+signing.gnupg.homeDir=C:/Users/80982/.gradle/central-gnupg
+signing.gnupg.keyName=REPLACE_WITH_FULL_PRIMARY_KEY_FINGERPRINT
+signing.gnupg.passphrase=REPLACE_WITH_GPG_PASSPHRASE

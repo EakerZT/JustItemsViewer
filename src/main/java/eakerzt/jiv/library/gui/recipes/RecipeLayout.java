@@ -81,6 +81,7 @@ public class RecipeLayout<R> implements IRecipeLayoutDrawable<R>, IRecipeExtrasB
 	private final CycleTicker cycleTicker;
 	private final IFocusGroup focuses;
 	private final List<IRecipeWidget> allWidgets;
+	private final List<eakerzt.jiv.api.gui.widgets.IRecipeScreenExtension> screenExtensions = new ArrayList<>();
 	private final R recipe;
 	private final IScalableDrawable recipeBackground;
 	private final int recipeBorderPadding;
@@ -166,6 +167,17 @@ public class RecipeLayout<R> implements IRecipeLayoutDrawable<R>, IRecipeExtrasB
 			extrasCreated = true;
 			recipeCategory.createRecipeExtras(this, recipe, focuses);
 		}
+	}
+
+	@Override
+	public void addScreenExtension(eakerzt.jiv.api.gui.widgets.IRecipeScreenExtension extension) {
+		this.screenExtensions.add(java.util.Objects.requireNonNull(extension));
+	}
+
+	@Override
+	public List<eakerzt.jiv.api.gui.widgets.IRecipeScreenExtension> getScreenExtensions() {
+		ensureRecipeExtrasAreCreated();
+		return List.copyOf(screenExtensions);
 	}
 
 	@Override

@@ -57,6 +57,19 @@ public class RecipeSlotBuilder implements IRecipeSlotBuilder {
 	private @Nullable OffsetDrawable background;
 	private @Nullable IDrawable overlay;
 	private @Nullable String slotName;
+	private boolean showFluidAmount;
+	private boolean nonConsumed, showChance;
+	private double chance = 1;
+
+	@Override
+	public IRecipeSlotBuilder setNonConsumed(boolean nonConsumed) { this.nonConsumed=nonConsumed;return this; }
+	@Override
+	public IRecipeSlotBuilder setChance(double chance) {
+		eakerzt.jiv.library.render.RecipeSlotDecorations.validateChance(chance);
+		this.chance=chance;this.showChance=true;return this;
+	}
+	@Override
+	public IRecipeSlotBuilder setShowChance(boolean showChance) { this.showChance=showChance;return this; }
 
 	public RecipeSlotBuilder(IIngredientManagerInternal ingredientManager, ContextMap contextMap, int slotIndex, RecipeIngredientRole role) {
 		this.ingredientManager = ingredientManager;
@@ -211,6 +224,12 @@ public class RecipeSlotBuilder implements IRecipeSlotBuilder {
 	}
 
 	@Override
+	public IRecipeSlotBuilder setShowFluidAmount(boolean showFluidAmount) {
+		this.showFluidAmount = showFluidAmount;
+		return this;
+	}
+
+	@Override
 	public IRecipeSlotBuilder setFluidRenderer(long capacity, boolean showCapacity, int width, int height, TilingDirection tilingDirection) {
 		Preconditions.checkArgument(capacity > 0, "capacity must be > 0");
 		ErrorUtil.checkNotNull(tilingDirection, "tilingDirection");
@@ -333,6 +352,8 @@ public class RecipeSlotBuilder implements IRecipeSlotBuilder {
 			rendererOverrides,
 			getContextMap()
 		);
+		recipeSlot.setShowFluidAmount(showFluidAmount);
+		recipeSlot.setRecipeDecorations(new eakerzt.jiv.library.render.RecipeSlotDecorations(nonConsumed,showChance,chance));
 		return new Pair<>(slotIndex, recipeSlot);
 	}
 

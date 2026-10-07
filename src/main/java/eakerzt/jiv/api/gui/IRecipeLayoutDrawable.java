@@ -24,6 +24,10 @@ import java.util.Optional;
  */
 @ApiStatus.NonExtendable
 public interface IRecipeLayoutDrawable<R> {
+    /** Per-layout extensions, created lazily alongside recipe extras. */
+    default java.util.List<eakerzt.jiv.api.gui.widgets.IRecipeScreenExtension> getScreenExtensions() {
+        return java.util.List.of();
+    }
 	/**
 	 * Set the position of the recipe layout in screen coordinates.
 	 * To help decide on the position, you can get the width and height of this recipe from {@link #getRect()}.

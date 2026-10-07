@@ -1,7 +1,9 @@
 plugins {
     java
     idea
+    signing
     id("net.neoforged.moddev") version "2.0.144"
+    id("com.vanniktech.maven.publish") version "0.37.0"
 }
 
 fun propertyValue(name: String) = providers.gradleProperty(name).get()
@@ -24,6 +26,49 @@ repositories {
 java {
     toolchain.languageVersion.set(JavaLanguageVersion.of(javaVersion))
     withSourcesJar()
+}
+
+mavenPublishing {
+    coordinates(group.toString(), "$modId-$minecraftVersion-neoforge", version.toString())
+    publishToMavenCentral(automaticRelease = false)
+    signAllPublications()
+
+    pom {
+        name.set(propertyValue("modName"))
+        description.set(propertyValue("modDescription"))
+        url.set("https://github.com/EakerZT/JustItemsViewer")
+        licenses {
+            license {
+                name.set("MIT License")
+                url.set("https://opensource.org/license/mit")
+                distribution.set("repo")
+            }
+        }
+        developers {
+            developer {
+                id.set("EakerZT")
+                name.set(propertyValue("modAuthor"))
+                url.set("https://github.com/EakerZT")
+            }
+        }
+        scm {
+            url.set("https://github.com/EakerZT/JustItemsViewer")
+            connection.set("scm:git:https://github.com/EakerZT/JustItemsViewer.git")
+            developerConnection.set("scm:git:ssh://git@github.com/EakerZT/JustItemsViewer.git")
+        }
+    }
+}
+
+signing {
+    // GnuPG includes the full issuer fingerprint for Central's public-key lookup.
+    if (providers.gradleProperty("signing.gnupg.keyName").isPresent) {
+        useGpgCmd()
+    }
+}
+
+tasks.withType<Javadoc>().configureEach {
+    options.encoding = "UTF-8"
+    (options as StandardJavadocDocletOptions).addStringOption("Xdoclint:none", "-quiet")
 }
 
 val datagen = sourceSets.create("datagen") {

@@ -32,6 +32,11 @@ import java.util.function.Consumer;
  */
 @ApiStatus.NonExtendable
 public interface IGuiHelper {
+    /** Draws a native recipe side-panel frame and slot background, mirrored on the right.
+     * Positive bounds must be at least 17 by 16 pixels; zero-sized bounds draw nothing.
+     */
+    void drawRecipeSidePanel(net.minecraft.client.gui.GuiGraphicsExtractor graphics,
+        net.minecraft.client.renderer.Rect2i bounds, boolean rightSide);
 	/**
 	 * Create a drawable from part of a standard 256x256 gui texture.
 	 *

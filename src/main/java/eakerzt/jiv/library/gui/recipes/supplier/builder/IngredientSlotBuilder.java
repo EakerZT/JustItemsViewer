@@ -32,6 +32,14 @@ import java.util.Optional;
  * but doesn't bother building anything for drawing on screen.
  */
 public class IngredientSlotBuilder implements IRecipeSlotBuilder {
+	@Override
+	public IRecipeSlotBuilder setNonConsumed(boolean nonConsumed) { return this; }
+	@Override
+	public IRecipeSlotBuilder setChance(double chance) {
+		eakerzt.jiv.library.render.RecipeSlotDecorations.validateChance(chance);return this;
+	}
+	@Override
+	public IRecipeSlotBuilder setShowChance(boolean showChance) { return this; }
 	private final DisplayIngredientAcceptor ingredients;
 	private final RecipeIngredientRole role;
 
@@ -169,6 +177,11 @@ public class IngredientSlotBuilder implements IRecipeSlotBuilder {
 
 	@Override
 	public IRecipeSlotBuilder setFluidRenderer(long capacity, boolean showCapacity, int width, int height) {
+		return this;
+	}
+
+	@Override
+	public IRecipeSlotBuilder setShowFluidAmount(boolean showFluidAmount) {
 		return this;
 	}
 

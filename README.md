@@ -6,7 +6,7 @@ Just Items Viewer (**JIV**) is an item and recipe viewer for **Minecraft 26.1.2 
 
 | Minecraft | Mod Loader | Current Version |
 | --- | --- | --- |
-| 26.1.2 | NeoForge | 0.0.1-alpha-1 |
+| 26.1.2 | NeoForge | 0.0.1-alpha-2 |
 
 ## Features
 
@@ -15,13 +15,14 @@ Just Items Viewer (**JIV**) is an item and recipe viewer for **Minecraft 26.1.2 
 - **Item and recipe bookmarks**: Save frequently used items and recipes for quick access.
 - **Lookup history**: Revisit recently viewed items without searching again.
 - **Recipe transfer**: Move ingredients from your inventory into recipe slots in supported containers.
+- **Recipe display API**: Add recipe screen extensions, native side panels, fluid amount labels, and non-consumed/chance slot markers.
 - **Built-in settings**: Customize item lists, search behavior, bookmarks, and tooltips.
 - **Cheat mode**: Obtain items directly when you have the required permissions.
 
 ## Installation
 
 1. Install **Minecraft 26.1.2** with **NeoForge 26.1.2.99 or a newer NeoForge release for Minecraft 26.1.2**.
-2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-1.jar` in your game instance's `mods` folder.
+2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-2.jar` in your game instance's `mods` folder.
 3. Launch the game and open your inventory.
 
 Settings and search are included. **No separate MezzConfig, MezzConfigGUI, or search library installation is required.**
@@ -63,6 +64,10 @@ Adjust the list layout, item sorting, search options, bookmark display, and tool
 JIV currently supports **Minecraft 26.1.2 and NeoForge**.
 
 Recipes provided by other mods through the standard recipe system can be viewed in JIV. Custom recipe displays that depend on dedicated interfaces or JEI plugins require JIV integration. Existing JEI plugins cannot be loaded directly.
+
+## Developer API
+
+For mod integration, see the [English / Chinese developer Wiki](https://github.com/EakerZT/JustItemsViewer/wiki): plugin setup, recipes, ingredients, GUI integration, recipe transfer, runtime access, and the built-in configuration API. The [getting started guide](https://github.com/EakerZT/JustItemsViewer/wiki/Getting-Started-en) includes the Maven Central dependency, and [complete examples](https://github.com/EakerZT/JustItemsViewer/wiki/Examples-en) are available in both languages.
 
 ## Credits and License
 

@@ -52,6 +52,8 @@ public class RecipeGuiLogic implements IRecipeGuiLogic {
 	private @Nullable IRecipeCategory<?> cachedRecipeCategory;
 	private @Nullable IRecipeLayoutList cachedRecipeLayoutsWithButtons;
 	private int cachedContainerId = -1;
+	private int cachedRecipeWidth = -1;
+	private int cachedRecipeHeight = -1;
 	private Set<RecipeSorterStage> cachedSorterStages = Set.of();
 
 	public RecipeGuiLogic(
@@ -276,6 +278,8 @@ public class RecipeGuiLogic implements IRecipeGuiLogic {
 		if (!recipeSorterStages.equals(cachedSorterStages) ||
 			this.cachedRecipeLayoutsWithButtons == null ||
 			this.cachedRecipeCategory != recipeCategory ||
+			this.cachedRecipeWidth != recipeCategory.getWidth() ||
+			this.cachedRecipeHeight != recipeCategory.getHeight() ||
 			this.cachedContainerId != containerId
 		) {
 			IFocusedRecipes<?> focusedRecipes = this.state.getFocusedRecipes();
@@ -291,6 +295,8 @@ public class RecipeGuiLogic implements IRecipeGuiLogic {
 				recipesGui
 			);
 			this.cachedRecipeCategory = recipeCategory;
+			this.cachedRecipeWidth = recipeCategory.getWidth();
+			this.cachedRecipeHeight = recipeCategory.getHeight();
 			this.cachedSorterStages = Set.copyOf(recipeSorterStages);
 			this.cachedContainerId = containerId;
 		}
@@ -301,7 +307,8 @@ public class RecipeGuiLogic implements IRecipeGuiLogic {
 			.map(Rect2i::getHeight)
 			.orElseGet(recipeCategory::getHeight);
 
-		final int recipesPerPage = Math.max(1, 1 + ((availableHeight - recipeHeight) / (recipeHeight + minRecipePadding)));
+		final int recipesPerPage = Math.min(Math.max(1, recipeCategory.getMaxRecipesPerPage()),
+			Math.max(1, 1 + ((availableHeight - recipeHeight) / (recipeHeight + minRecipePadding))));
 		this.state.setRecipesPerPage(recipesPerPage);
 
 		return this.state.getVisible(this.cachedRecipeLayoutsWithButtons);

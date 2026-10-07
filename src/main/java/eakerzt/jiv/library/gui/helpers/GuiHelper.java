@@ -43,6 +43,26 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 public class GuiHelper implements IGuiHelper {
+    @Override
+    public void drawRecipeSidePanel(net.minecraft.client.gui.GuiGraphicsExtractor graphics,
+        net.minecraft.client.renderer.Rect2i area, boolean rightSide) {
+        if (area.getWidth() <= 0 || area.getHeight() <= 0) return;
+        if (area.getWidth() < 17 || area.getHeight() < 16) throw new IllegalArgumentException("Side panel bounds must be at least 17 by 16 pixels");
+        var textures = Internal.getTextures();
+        if (!rightSide) textures.getCatalystTab().draw(graphics,area.getX(),area.getY(),area.getWidth(),area.getHeight());
+        else {
+            var atlas=net.minecraft.client.Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(net.minecraft.data.AtlasIds.GUI);
+            var sprite=atlas.getSprite(Identifier.parse("jiv:catalyst_tab"));
+            // Positive screen rectangles with reversed UVs; negative pose scale is rejected by extraction.
+            int[] sx={28,19,8,0},sy={0,8,20,28};
+            int[] tx={area.getX(),area.getX()+9,area.getX()+area.getWidth()-8,area.getX()+area.getWidth()};
+            int[] ty={area.getY(),area.getY()+8,area.getY()+area.getHeight()-8,area.getY()+area.getHeight()};
+            for(int col=0;col<3;col++)for(int row=0;row<3;row++)
+                graphics.blit(sprite.atlasLocation(),tx[col],ty[row],tx[col+1],ty[row+1],
+                    sprite.getU(sx[col]/28f),sprite.getU(sx[col+1]/28f),sprite.getV(sy[row]/28f),sprite.getV(sy[row+1]/28f));
+        }
+        textures.getRecipeCatalystSlotBackground().draw(graphics,area.getX()+5,area.getY()+5,area.getWidth()-10,area.getHeight()-10);
+    }
 	private final IIngredientManagerInternal ingredientManager;
 	private final ContextMap contextMap;
 

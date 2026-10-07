@@ -87,6 +87,7 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	/* List of RecipeLayout to display */
 	private final RecipeGuiLayouts layouts;
+	private final RecipeScreenExtensions screenExtensions = new RecipeScreenExtensions();
 
 	private String pageString = "1/1";
 	private final ScalableDrawable background;
@@ -333,6 +334,12 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	@Override
 	public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
+		updateScreenExtensions();
+		var titleArea = MathUtil.union(previousRecipeCategory.getArea(), nextRecipeCategory.getArea())
+			.cropLeft(previousRecipeCategory.getWidth() + titleInnerPadding)
+			.cropRight(nextRecipeCategory.getWidth() + titleInnerPadding);
+		this.recipeCategoryTitle = RecipeCategoryTitle.create(
+			screenExtensions.title().orElseGet(() -> logic.getSelectedRecipeCategory().getTitle()), font, titleArea);
 		super.extractRenderState(guiGraphics, mouseX, mouseY, partialTicks);
 
 		guiGraphics.fill(
@@ -388,6 +395,9 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 			}
 			tooltip.draw(guiGraphics, mouseX, mouseY);
 		}
+
+		screenExtensions.draw(guiGraphics, mouseX, mouseY);
+		if (!interactiveIngredientTooltipController.isVisible()) screenExtensions.drawTooltips(guiGraphics, mouseX, mouseY);
 
 		if (DebugConfig.isDebugGuisEnabled()) {
 			guiGraphics.fill(
@@ -449,7 +459,9 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 	@Override
 	public boolean isMouseOver(double mouseX, double mouseY) {
 		if (minecraft.screen == this) {
+			updateScreenExtensions();
 			return area.contains(mouseX, mouseY) ||
+				screenExtensions.areas().anyMatch(r -> mouseX >= r.left() && mouseX < r.right() && mouseY >= r.top() && mouseY < r.bottom()) ||
 				optionButtons.getArea().contains(mouseX, mouseY);
 		}
 		return false;
@@ -458,13 +470,18 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 	@Override
 	public Stream<IClickableIngredientInternal<?>> getIngredientUnderMouse(double mouseX, double mouseY) {
 		if (isOpen()) {
+			updateScreenExtensions();
 			if (interactiveIngredientTooltipController.isVisible()) {
 				return interactiveIngredientTooltipController.getIngredientUnderMouse(mouseX, mouseY);
 			}
-			return Stream.concat(
+			Stream<IClickableIngredientInternal<?>> extras = screenExtensions.slots(mouseX, mouseY)
+				.flatMap(s -> s.slot().getDisplayedIngredient().stream().map(i ->
+					new eakerzt.jiv.gui.input.ClickableIngredientInternal<>(
+						new eakerzt.jiv.gui.overlay.elements.IngredientElement<>(i), s::isMouseOver, false, true)));
+			return Stream.concat(extras, Stream.concat(
 				craftingStations.getIngredientUnderMouse(mouseX, mouseY),
 				layouts.getIngredientUnderMouse(mouseX, mouseY)
-			);
+			));
 		}
 		return Stream.empty();
 	}
@@ -496,12 +513,15 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	@Override
 	public boolean mouseDragged(MouseButtonEvent event, double dragX, double dragY) {
+		if (screenExtensions.dragged(event, dragX, dragY)) return true;
 		InputConstants.Key input = InputConstants.Type.MOUSE.getOrCreate(event.button());
 		return layouts.mouseDragged(event.x(), event.y(), input, dragX, dragY);
 	}
 
 	@Override
 	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		updateScreenExtensions();
+		if (screenExtensions.scrolled(mouseX, mouseY, scrollX, scrollY)) return true;
 		if (this.inputHandler.handleMouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
 			return true;
 		}
@@ -511,6 +531,8 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	@Override
 	public boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick) {
+		updateScreenExtensions();
+		if (screenExtensions.clicked(mouseButtonEvent)) return true;
 		boolean handled = UserInput.fromVanilla(mouseButtonEvent, doubleClick, InputType.SIMULATE)
 			.map(this::handleInput)
 			.orElse(false);
@@ -523,6 +545,10 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	@Override
 	public boolean mouseReleased(MouseButtonEvent mouseButtonEvent) {
+		if (screenExtensions.released(mouseButtonEvent)) {
+			updateScreenExtensions();
+			return true;
+		}
 		boolean handled = MouseUserInput.fromVanilla(mouseButtonEvent, false, InputType.EXECUTE)
 			.map(this::handleInput)
 			.orElse(false);
@@ -569,6 +595,7 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 
 	@Override
 	public void onClose() {
+		screenExtensions.clear();
 		if (isOpen()) {
 			minecraft.setScreen(parentScreen);
 			parentScreen = null;
@@ -576,6 +603,12 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 			return;
 		}
 		super.onClose();
+	}
+
+	@Override
+	public void removed() {
+		screenExtensions.clear();
+		super.removed();
 	}
 
 	@Override
@@ -634,6 +667,12 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 	}
 
 	private boolean openInteractiveIngredientTooltip(double mouseX, double mouseY) {
+		updateScreenExtensions();
+		var extraSlot = screenExtensions.slots(mouseX, mouseY).findFirst();
+		if (extraSlot.isPresent()) {
+			var slot = extraSlot.get();
+			return interactiveIngredientTooltipController.show(slot, slot::isMouseOver, mouseX, mouseY);
+		}
 		Optional<RecipeSlotUnderMouse> craftingStation = craftingStations.getSlotUnderMouse(mouseX, mouseY);
 		if (craftingStation.isPresent()) {
 			RecipeSlotUnderMouse slotUnderMouse = craftingStation.get();
@@ -701,6 +740,14 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 		List<Consumer<IIngredientAcceptor<?>>> craftingStations = logic.getCraftingStations().toList();
 		this.craftingStations.updateLayout(craftingStations, this.area, optionButtonsArea);
 		recipeGuiTabs.initLayout(this.idealArea);
+		screenExtensions.setLayouts(recipeLayoutsWithButtons);
+		updateScreenExtensions();
+	}
+
+	private void updateScreenExtensions() {
+		if (!init) return;
+		screenExtensions.update(new GuiProperties(getClass(), area.getX(), area.getY(), area.getWidth(), area.getHeight(), width, height),
+			area.getHeight() - optionButtons.getArea().getHeight() - 8);
 	}
 
 	private ImmutableRect2i getRecipeLayoutsArea() {
@@ -749,13 +796,22 @@ public class RecipesGui extends Screen implements IRecipesGui, IRecipeFocusSourc
 		ImmutableRect2i recipeArea = getArea();
 		int guiXSize = recipeArea.getWidth() + extraWidth;
 		int guiYSize = recipeArea.getHeight();
+		updateScreenExtensions();
+		int left = recipeArea.getX() - extraWidth, top = recipeArea.getY();
+		int right = left + guiXSize, bottom = top + guiYSize;
+		for (var bounds : screenExtensions.areas().toList()) {
+			if (bounds.width() <= 0 || bounds.height() <= 0) continue;
+			left = Math.min(left, bounds.left()); right = Math.max(right, bounds.right());
+			top = Math.min(top, bounds.top()); bottom = Math.max(bottom, bounds.bottom());
+		}
+		guiXSize = right - left; guiYSize = bottom - top;
 		if (guiXSize <= 0 || guiYSize <= 0) {
 			return null;
 		}
 		return new GuiProperties(
 			getClass(),
-			recipeArea.getX() - extraWidth,
-			recipeArea.getY(),
+			left,
+			top,
 			guiXSize,
 			guiYSize,
 			width,

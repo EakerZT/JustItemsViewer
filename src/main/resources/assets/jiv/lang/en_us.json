@@ -1,4 +1,6 @@
 {
+  "jiv.tooltip.recipe.not_consumed": "Not consumed",
+  "jiv.tooltip.recipe.chance": "Chance: %s%%",
   "jiv.message.config.unavailable": "The configuration screen is unavailable. You can edit the configuration files directly.",
   "_comment": "Debug (for a debug mode, do not need translation)",
   "jiv.tooltip.config": "JIV Config",

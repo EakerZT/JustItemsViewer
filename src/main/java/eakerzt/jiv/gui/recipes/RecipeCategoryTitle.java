@@ -22,7 +22,11 @@ public class RecipeCategoryTitle {
 	private final ImmutableRect2i area;
 
 	public static RecipeCategoryTitle create(IRecipeCategory<?> recipeCategory, Font font, ImmutableRect2i availableArea) {
-		Component fullString = StringUtil.stripStyling(recipeCategory.getTitle());
+		return create(recipeCategory.getTitle(), font, availableArea);
+	}
+
+	public static RecipeCategoryTitle create(Component title, Font font, ImmutableRect2i availableArea) {
+		Component fullString = StringUtil.stripStyling(title);
 		FormattedCharSequence visibleString;
 		Component tooltipString;
 

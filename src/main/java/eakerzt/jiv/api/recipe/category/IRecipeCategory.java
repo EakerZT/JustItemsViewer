@@ -34,6 +34,8 @@ import java.util.List;
  * Also draws elements that are common to all recipes in the category like the background.
  */
 public interface IRecipeCategory<T> {
+    /** Maximum visible recipes per page. Values below one are treated as one. */
+    default int getMaxRecipesPerPage() { return Integer.MAX_VALUE; }
 	/**
 	 * @return the type of recipe that this category handles.
 	 *

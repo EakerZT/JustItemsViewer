@@ -44,6 +44,8 @@ import java.util.List;
  */
 @ApiStatus.NonExtendable
 public interface IRecipeExtrasBuilder {
+    /** Adds recipe-screen chrome independently from ordinary recipe widgets. */
+    void addScreenExtension(IRecipeScreenExtension extension);
 
 	/**
 	 * Get the recipe slots that were created in {@link IRecipeCategory#setRecipe}.

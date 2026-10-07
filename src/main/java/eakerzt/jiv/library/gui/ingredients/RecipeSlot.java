@@ -62,6 +62,19 @@ public class RecipeSlot implements IRecipeSlotView, IRecipeSlotDrawable {
 	private @Nullable TooltipData tooltipData;
 	private Runnable displayOverridesChangedListener = () -> {};
 	private ImmutableRect2i rect;
+	private boolean showFluidAmount;
+	private eakerzt.jiv.library.render.RecipeSlotDecorations recipeDecorations = eakerzt.jiv.library.render.RecipeSlotDecorations.NONE;
+	public void setRecipeDecorations(eakerzt.jiv.library.render.RecipeSlotDecorations decorations) {
+		this.recipeDecorations = java.util.Objects.requireNonNull(decorations);
+	}
+
+	public void setShowFluidAmount(boolean showFluidAmount) { this.showFluidAmount = showFluidAmount; }
+
+	public java.util.OptionalLong getDisplayedFluidAmount() {
+		if (!showFluidAmount) return java.util.OptionalLong.empty();
+		return getDisplayedIngredient().map(eakerzt.jiv.library.render.FluidAmountRenderer::getAmount)
+			.orElseGet(java.util.OptionalLong::empty);
+	}
 
 	public RecipeSlot(
 		IIngredientManagerInternal ingredientManager,
@@ -198,7 +211,10 @@ public class RecipeSlot implements IRecipeSlotView, IRecipeSlotDrawable {
 	@Override
 	public void addTooltip(ITooltipBuilder tooltip) {
 		getDisplayedSlotIngredient()
-			.ifPresent(ingredient -> addIngredientTooltip(tooltip, ingredient));
+			.ifPresent(ingredient -> {
+				addIngredientTooltip(tooltip, ingredient);
+				recipeDecorations.addTooltip(tooltip);
+			});
 		for (IRecipeSlotRichTooltipCallback tooltipCallback : tooltipCallbacks) {
 			tooltipCallback.onRichTooltip(this, tooltip);
 		}
@@ -396,6 +412,10 @@ public class RecipeSlot implements IRecipeSlotView, IRecipeSlotDrawable {
 		if (overlay != null) {
 			overlay.draw(guiGraphics, x, y);
 		}
+
+		getDisplayedFluidAmount().ifPresent(amount -> eakerzt.jiv.library.render.FluidAmountRenderer.draw(
+			guiGraphics, amount, x, y, rect.getWidth(), rect.getHeight()));
+		displayedIngredient.ifPresent(ignored -> recipeDecorations.draw(guiGraphics,x,y,rect.getWidth(),rect.getHeight()));
 
 		displayedIngredient.ifPresent(ignored -> drawCandidatesBadge(guiGraphics));
 
