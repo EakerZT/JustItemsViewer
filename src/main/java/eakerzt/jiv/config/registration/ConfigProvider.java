@@ -1,0 +1,279 @@
+package eakerzt.jiv.config.registration;
+
+import eakerzt.jiv.config.api.Configs;
+import eakerzt.jiv.config.api.IConfigRegistration;
+import eakerzt.jiv.config.api.schema.ConfigSchemaType;
+import eakerzt.jiv.config.api.schema.IConfigSchema;
+import eakerzt.jiv.config.api.schema.builder.IConfigSchemaBuilder;
+import eakerzt.jiv.config.api.sorting.ISortingConfig;
+import eakerzt.jiv.config.api.value.serializer.IConfigValueSerializer;
+import eakerzt.jiv.config.client.ClientWorldConfigPathUtil;
+import eakerzt.jiv.config.file.ConfigFileWatcherSettings;
+import eakerzt.jiv.config.file.ConfigManager;
+import eakerzt.jiv.config.file.MezzConfigSettings;
+import eakerzt.jiv.config.schema.ClientWorldConfigSchemaPathResolver;
+import eakerzt.jiv.config.schema.ConfigSchema;
+import eakerzt.jiv.config.schema.ConfigSchemaBuilder;
+import eakerzt.jiv.config.schema.ConfigSchemaPathResolver;
+import eakerzt.jiv.config.schema.LayeredConfigSchemaPathResolver;
+import eakerzt.jiv.config.schema.StaticConfigSchemaPathResolver;
+import eakerzt.jiv.config.server.ServerConfigKey;
+import eakerzt.jiv.config.server.ServerConfigPathResolver;
+import eakerzt.jiv.config.serializers.StringSerializer;
+import eakerzt.jiv.config.util.ErrorUtil;
+
+import java.io.File;
+import java.nio.file.Path;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Optional;
+import java.util.ServiceLoader;
+
+public final class ConfigProvider implements Configs.IConfigProvider {
+	private static final ConfigPhysicalSideProvider PHYSICAL_SIDE_PROVIDER = loadPhysicalSideProvider();
+	private static final boolean CLIENT_CONFIGS_AVAILABLE = PHYSICAL_SIDE_PROVIDER.isPhysicalClient();
+	private static final ConfigManager CONFIG_MANAGER = createConfigManager();
+
+	public static ConfigPhysicalSideProvider getEnvironment() {
+		return PHYSICAL_SIDE_PROVIDER;
+	}
+
+	public static ConfigManager getConfigManager() {
+		return CONFIG_MANAGER;
+	}
+
+	@Override
+	public Collection<? extends IConfigSchema> getSchemas() {
+		return CONFIG_MANAGER.getSchemas();
+	}
+
+	@Override
+	public IConfigRegistration createRegistration(String modId) {
+		return createRegistration(PHYSICAL_SIDE_PROVIDER.getConfigRoot(), modId);
+	}
+
+	static IConfigRegistration createRegistration(Path configRootDir, String modId) {
+		configRootDir = ErrorUtil.checkNotNull(configRootDir, "configRootDir")
+			.toAbsolutePath()
+			.normalize();
+		modId = validateModDirectory(modId);
+		Path modDirectory = configRootDir.resolve(modId).normalize();
+		return new Registration(modId, modDirectory, getConfigManager());
+	}
+
+	private static String validateModDirectory(String modId) {
+		modId = ConfigSchema.validateModId(modId);
+		Path relativeModDirectory = Path.of(modId).normalize();
+		if (relativeModDirectory.isAbsolute() ||
+			relativeModDirectory.startsWith("..") ||
+			relativeModDirectory.getNameCount() != 1 ||
+			relativeModDirectory.toString().isEmpty()
+		) {
+			throw new IllegalArgumentException("modId must identify a directory inside the config root: " + modId);
+		}
+		return modId;
+	}
+
+	private record Registration(String modId, Path modDirectory, ConfigManager configManager)
+		implements
+			IConfigRegistration {
+		@Override
+		public IConfigSchemaBuilder createClientSchemaBuilder(String configFileName, String localizationPath) {
+			localizationPath = ErrorUtil.checkNotNull(localizationPath, "localizationPath");
+			Path relativeConfigFile = getRelativeConfigFile(configFileName);
+			String id = getSchemaId(relativeConfigFile);
+			Path ownershipDirectory = modDirectory.resolve("client");
+			Path defaultConfigFile = ownershipDirectory.resolve("default")
+				.resolve(relativeConfigFile)
+				.normalize();
+			Path configFile = ownershipDirectory.resolve(relativeConfigFile).normalize();
+			ConfigSchemaPathResolver pathResolver = new LayeredConfigSchemaPathResolver(
+				defaultConfigFile,
+				new StaticConfigSchemaPathResolver(configFile)
+			);
+			return createClientSchemaBuilder(id, pathResolver, localizationPath, ConfigSchemaType.CLIENT);
+		}
+
+		@Override
+		public IConfigSchemaBuilder createClientPerWorldSchemaBuilder(String configFileName, String localizationPath) {
+			localizationPath = ErrorUtil.checkNotNull(localizationPath, "localizationPath");
+			Path relativeConfigFile = getRelativeConfigFile(configFileName);
+			String id = getSchemaId(relativeConfigFile);
+			Path ownershipDirectory = modDirectory.resolve("client");
+			Path defaultConfigFile = ClientWorldConfigPathUtil.getDefaultWorldPath(ownershipDirectory)
+				.resolve(relativeConfigFile)
+				.normalize();
+			ClientWorldConfigSchemaPathResolver activePathResolver = new ClientWorldConfigSchemaPathResolver(
+				relativeConfigFile,
+				() -> ClientWorldConfigPathUtil.getWorldPath(ownershipDirectory)
+			);
+			ConfigSchemaPathResolver pathResolver = new LayeredConfigSchemaPathResolver(
+				defaultConfigFile,
+				activePathResolver
+			);
+			return createClientSchemaBuilder(id, pathResolver, localizationPath, ConfigSchemaType.CLIENT_PER_WORLD);
+		}
+
+		@Override
+		public IConfigSchemaBuilder createClientSchemaBuilder(Path configFile, String localizationPath) {
+			configFile = ErrorUtil.checkNotNull(configFile, "configFile")
+				.toAbsolutePath()
+				.normalize();
+			localizationPath = ErrorUtil.checkNotNull(localizationPath, "localizationPath");
+			return createClientSchemaBuilder(
+				getSchemaId(configFile),
+				new StaticConfigSchemaPathResolver(configFile),
+				localizationPath,
+				ConfigSchemaType.CLIENT
+			);
+		}
+
+		private IConfigSchemaBuilder createClientSchemaBuilder(
+			String id,
+			ConfigSchemaPathResolver pathResolver,
+			String localizationPath,
+			ConfigSchemaType type
+		) {
+			if (!CLIENT_CONFIGS_AVAILABLE) {
+				return new ConfigSchemaBuilder(
+					id,
+					modId,
+					Optional::empty,
+					localizationPath,
+					configManager,
+					type,
+					null,
+					false
+				);
+			}
+			return new ConfigSchemaBuilder(
+				id,
+				modId,
+				pathResolver,
+				localizationPath,
+				configManager,
+				type,
+				null,
+				true
+			);
+		}
+
+		@Override
+		public IConfigSchemaBuilder createServerSchemaBuilder(String configFileName, String localizationPath) {
+			localizationPath = ErrorUtil.checkNotNull(localizationPath, "localizationPath");
+			Path relativeConfigFile = getRelativeConfigFile(configFileName);
+			String normalizedFileName = getSchemaId(relativeConfigFile);
+			Path ownershipDirectory = modDirectory.resolve("server");
+			ServerConfigKey key = new ServerConfigKey(modId, normalizedFileName);
+			Path defaultConfigFile = ownershipDirectory.resolve("world")
+				.resolve("default")
+				.resolve(relativeConfigFile)
+				.normalize();
+			ConfigSchemaPathResolver pathResolver = new ServerConfigPathResolver(
+				key,
+				relativeConfigFile,
+				defaultConfigFile
+			);
+			return new ConfigSchemaBuilder(
+				normalizedFileName,
+				modId,
+				pathResolver,
+				localizationPath,
+				configManager,
+				ConfigSchemaType.SERVER,
+				key,
+				true
+			);
+		}
+
+		private static String getSchemaId(Path configFile) {
+			return configFile.toString().replace(File.separatorChar, '/');
+		}
+
+		@Override
+		public ISortingConfig<String> createSortingConfig(
+			String configFileName,
+			Comparator<String> defaultSortOrder,
+			boolean allowsRemovingValues
+		) {
+			return createSortingConfig(
+				configFileName,
+				StringSerializer.INSTANCE,
+				defaultSortOrder,
+				allowsRemovingValues
+			);
+		}
+
+		@Override
+		public <T> ISortingConfig<T> createSortingConfig(
+			String configFileName,
+			IConfigValueSerializer<T> serializer,
+			Comparator<T> defaultSortOrder,
+			boolean allowsRemovingValues
+		) {
+			Path relativeConfigFile = getRelativeConfigFile(configFileName);
+			if (!CLIENT_CONFIGS_AVAILABLE) {
+				return configManager.createInMemorySortingConfig(serializer, defaultSortOrder, allowsRemovingValues);
+			}
+			Path configFile = modDirectory.resolve("client")
+				.resolve(relativeConfigFile)
+				.normalize();
+			return configManager.createSortingConfig(configFile, serializer, defaultSortOrder, allowsRemovingValues);
+		}
+
+	}
+
+	private static ConfigManager createConfigManager() {
+		if (CLIENT_CONFIGS_AVAILABLE) {
+			ConfigManager configManager = MezzConfigSettings.createManager(
+				"MezzConfig File Watcher",
+				PHYSICAL_SIDE_PROVIDER.getConfigRoot(),
+				PHYSICAL_SIDE_PROVIDER.isDevelopmentEnvironment()
+			);
+			configManager.startWatching();
+			return configManager;
+		}
+		ConfigManager configManager = new ConfigManager(
+			"MezzConfig File Watcher",
+			ConfigFileWatcherSettings.clientDefaults(),
+			ConfigFileWatcherSettings.serverDefaults(),
+			PHYSICAL_SIDE_PROVIDER.isDevelopmentEnvironment()
+		);
+		configManager.startWatching();
+		return configManager;
+	}
+
+	private static ConfigPhysicalSideProvider loadPhysicalSideProvider() {
+		Iterator<ConfigPhysicalSideProvider> providers = ServiceLoader.load(
+				ConfigPhysicalSideProvider.class,
+				ConfigProvider.class.getClassLoader()
+			)
+			.iterator();
+		if (!providers.hasNext()) {
+			throw new IllegalStateException("MezzConfig physical-side provider is not present.");
+		}
+		ConfigPhysicalSideProvider provider = providers.next();
+		if (providers.hasNext()) {
+			throw new IllegalStateException("More than one MezzConfig physical-side provider is present.");
+		}
+		return provider;
+	}
+
+	private static Path getRelativeConfigFile(String configFileName) {
+		configFileName = ErrorUtil.checkNotNull(configFileName, "configFileName");
+		if (configFileName.isBlank()) {
+			throw new IllegalArgumentException("configFileName must not be blank.");
+		}
+		Path relativeConfigFile = Path.of(configFileName).normalize();
+		if (relativeConfigFile.isAbsolute() ||
+			relativeConfigFile.startsWith("..") ||
+			relativeConfigFile.toString().isEmpty()
+		) {
+			throw new IllegalArgumentException(
+				"configFileName must be a relative path inside the mod's config directory: " + configFileName
+			);
+		}
+		return relativeConfigFile;
+	}
+}

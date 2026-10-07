@@ -1,0 +1,17 @@
+package eakerzt.jiv.api.search;
+
+/**
+ * Creates search storage instances for JIV's ingredient search.
+ *
+ * @since 29.16.0
+ */
+@FunctionalInterface
+public interface ISearchStorageFactory {
+	/**
+	 * Create a new empty search storage.
+	 *
+	 * @param <T> the type of values stored in the search index
+	 * @since 29.16.0
+	 */
+	<T> ISearchStorage<T> createSearchStorage();
+}

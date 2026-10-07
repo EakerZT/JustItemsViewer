@@ -1,0 +1,44 @@
+package eakerzt.jiv.common.input.keys;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.KeyMapping;
+import net.minecraft.network.chat.Component;
+import org.lwjgl.glfw.GLFW;
+
+import java.util.function.Consumer;
+
+public interface IJivKeyMappingInternal extends IJivKeyMappingWithExtraModifiers {
+	@Override
+	boolean isActiveAndMatches(InputConstants.Key key);
+
+	default boolean isActiveAndMatchesAllowingExtraModifiers(InputConstants.Key key) {
+		return isActiveAndMatches(key);
+	}
+
+	@Override
+	boolean isUnbound();
+
+	@Override
+	Component getTranslatedKeyMessage();
+
+	KeyMapping getKeyMapping();
+
+	boolean isDown();
+
+	IJivKeyMappingInternal register(Consumer<KeyMapping> registerMethod);
+
+	static boolean isKeyDown(InputConstants.Key key) {
+		if (InputConstants.UNKNOWN.equals(key)) {
+			return false;
+		}
+
+		Minecraft minecraft = Minecraft.getInstance();
+		long windowHandle = minecraft.getWindow().handle();
+		return switch (key.getType()) {
+			case KEYSYM -> InputConstants.isKeyDown(minecraft.getWindow(), key.getValue());
+			case MOUSE -> GLFW.glfwGetMouseButton(windowHandle, key.getValue()) == GLFW.GLFW_PRESS;
+			case SCANCODE -> false;
+		};
+	}
+}

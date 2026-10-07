@@ -1,0 +1,32 @@
+package eakerzt.jiv.config.gui.jiv;
+
+import eakerzt.jiv.config.gui.ConfigClientUtil;
+import eakerzt.jiv.api.gui.handlers.IGlobalGuiHandler;
+import eakerzt.jiv.config.gui.ConfigScreen;
+import net.minecraft.client.renderer.Rect2i;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+
+/**
+ * Reports config screen tab and popup bounds so JIV can keep other UI from drawing over them.
+ */
+final class ConfigScreenGuiHandler implements IGlobalGuiHandler {
+	@Override
+	public Collection<Rect2i> getGuiExtraAreas() {
+		if (ConfigClientUtil.screen() instanceof ConfigScreen configScreen) {
+			List<Rect2i> areas = new ArrayList<>(2);
+			Rect2i modTabsArea = configScreen.getModTabsArea();
+			if (modTabsArea != null) {
+				areas.add(modTabsArea);
+			}
+			Rect2i selectorArea = configScreen.getValueSelectorArea();
+			if (selectorArea != null) {
+				areas.add(selectorArea);
+			}
+			return areas;
+		}
+		return List.of();
+	}
+}

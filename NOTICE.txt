@@ -1,0 +1,42 @@
+Just Items Viewer is derived from Just Enough Items (JEI) by mezz and contributors.
+Upstream: https://github.com/mezz/JustEnoughItems
+Source branch: 26.1
+Source commit: 88eb850a1ffb46e79c6207516ca37dbe097e7599
+
+The original MIT license and copyright notice are preserved in LICENSE.txt.
+JIV changes include NeoForge-only build configuration and package/resource migration.
+This project is an independent fork and is not an official JEI release.
+
+Integrated configuration libraries (MIT, Copyright (c) 2026 mezz):
+MezzConfig 0.6.3 for Minecraft 26.1.2 NeoForge:
+https://github.com/mezz/MezzConfig
+MezzConfigGui 0.5.10 for Minecraft 26.1.2 NeoForge:
+https://github.com/mezz/MezzConfigGui
+DeduplicatingRunner 0.1.0 and FileWatcher 0.4.0:
+published Maven sources net.mezzdev:deduplicating-runner and net.mezzdev:filewatcher.
+The configuration code is relocated into eakerzt.jiv.config and initialized by
+JIV. Mod entry points, GUI ownership, resources and network identifiers are
+adapted for the single JIV mod. Service providers and GUI integration use JIV's
+own classloader and API. Original licenses are preserved under META-INF/.
+
+Integrated search libraries:
+Baked Substring Index 0.1.0 (MIT, Copyright (c) 2026 James Mitchell):
+https://github.com/mezz/baked-substring-index
+Generalized Suffix Tree 1.1.0 (Apache License 2.0, Copyright 2012
+Alessandro Bahgat Shehata; maintained by James Mitchell):
+https://github.com/mezz/generalized-suffix-tree
+Sources are taken from the published Maven source JARs and relocated into
+eakerzt.jiv.common.search.internal. The algorithms are unchanged. Original
+copyright headers are preserved, and package changes are noted in each file.
+Full licenses are included in META-INF/LICENSE-BakedSubstringIndex and
+META-INF/LICENSE-SuffixTree. Fastutil and annotation types use the libraries
+provided by the Minecraft/NeoForge runtime.
+
+Inherited third-party code:
+Java Color Thief (ColorThief.java and MMCQ.java), by Sven Woltmann, Fonpit AG,
+is licensed under Creative Commons Attribution 2.5:
+https://creativecommons.org/licenses/by/2.5/
+Based on the original Color Thief JavaScript version by Lokesh Dhakar:
+http://lokeshdhakar.com/projects/color-thief/
+The original attribution headers remain in the source. JIV changes to these
+files are limited to the Java package migration.

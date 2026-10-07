@@ -1,0 +1,177 @@
+package eakerzt.jiv.config.gui.model;
+
+import eakerzt.jiv.config.gui.util.ImmutableRect2i;
+import eakerzt.jiv.config.gui.util.Pair;
+import eakerzt.jiv.config.gui.util.StringUtil;
+import eakerzt.jiv.config.gui.ConfigInputUtil;
+import eakerzt.jiv.config.gui.ConfigGuiColors;
+import eakerzt.jiv.config.gui.ConfigScreenLayout;
+import eakerzt.jiv.config.gui.api.ConfigInfo;
+import eakerzt.jiv.config.gui.ConfigInputHandler;
+import eakerzt.jiv.config.gui.input.UserInput;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.locale.Language;
+import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.FormattedText;
+import net.minecraft.util.FormattedCharSequence;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.function.IntConsumer;
+import java.util.function.Supplier;
+
+/**
+ * Navigation item that selects a category and displays its hover info.
+ */
+public final class ConfigNavItem implements ConfigInputHandler {
+	private static final int TEXT_LEFT_PADDING = 6;
+	private static final int ACTIVE_TEXT_LEFT_PADDING = 8;
+	private static final int TEXT_RIGHT_PADDING = 6;
+	private static final int TEXT_VERTICAL_PADDING = 5;
+	private static final int MAX_TEXT_LINES = 2;
+	private static final int ACTIVE_ACCENT_WIDTH = 2;
+	private static final int INDENT_WIDTH = 12;
+	private static final int MAX_INDENT = 48;
+
+	private final Component fullName;
+	private final int categoryIndex;
+	private final ConfigCategoryWidget categoryWidget;
+	private final Supplier<ImmutableRect2i> navAreaSupplier;
+	private final IntConsumer categorySelector;
+	private final ConfigScreenModel model;
+
+	private ImmutableRect2i area = ImmutableRect2i.EMPTY;
+	private ImmutableRect2i hoverArea = ImmutableRect2i.EMPTY;
+	private List<FormattedCharSequence> visibleNameLines = List.of(FormattedCharSequence.EMPTY);
+
+	public ConfigNavItem(
+		Component displayName,
+		int categoryIndex,
+		ConfigCategoryWidget categoryWidget,
+		Supplier<ImmutableRect2i> navAreaSupplier,
+		IntConsumer categorySelector,
+		ConfigScreenModel model
+	) {
+		this.fullName = StringUtil.stripStyling(displayName);
+		this.categoryIndex = categoryIndex;
+		this.categoryWidget = categoryWidget;
+		this.navAreaSupplier = navAreaSupplier;
+		this.categorySelector = categorySelector;
+		this.model = model;
+	}
+
+	public int calculateHeight(int availableWidth) {
+		Font font = Minecraft.getInstance().font;
+		int textWidth = Math.max(0, availableWidth - getIndent() - getTextLeftPadding(true) - getTextRightPadding());
+		int maxLines = MAX_TEXT_LINES;
+		if (fullName.getString().contains("\n")) {
+			// File-qualified categories must keep the distinguishing filename visible.
+			maxLines = Integer.MAX_VALUE;
+		}
+		Pair<List<FormattedText>, Boolean> splitLines = StringUtil.splitLines(font, List.of(fullName), textWidth, maxLines);
+		visibleNameLines = Language.getInstance().getVisualOrder(splitLines.first());
+		int textHeight = visibleNameLines.size() * font.lineHeight;
+		int height = Math.max(ConfigScreenLayout.NAV_ITEM_HEIGHT, textHeight + TEXT_VERTICAL_PADDING);
+		return height;
+	}
+
+	public void updateBounds(ImmutableRect2i area, int hoverHeight) {
+		ImmutableRect2i rowArea = area.cropLeft(getIndent());
+		this.area = rowArea;
+		this.hoverArea = new ImmutableRect2i(rowArea.getX(), rowArea.getY(), rowArea.getWidth(), hoverHeight);
+	}
+
+	public void resetBounds() {
+		area = ImmutableRect2i.EMPTY;
+		hoverArea = ImmutableRect2i.EMPTY;
+	}
+
+	public boolean isMouseOver(double mouseX, double mouseY) {
+		return hoverArea.contains(mouseX, mouseY);
+	}
+
+	public void draw(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, boolean active) {
+		Font font = Minecraft.getInstance().font;
+		ImmutableRect2i navArea = navAreaSupplier.get();
+		boolean hovered = isMouseOver(mouseX, mouseY) && navArea.contains(mouseX, mouseY);
+
+		int x = area.getX();
+		int y = area.getY();
+		int right = area.getX() + area.getWidth();
+		int bottom = area.getY() + area.getHeight();
+		int hoverBottom = hoverArea.getY() + hoverArea.getHeight();
+
+		guiGraphics.fill(x, y, right, bottom, getBackgroundColor(active));
+		if (hovered) {
+			guiGraphics.fill(x, y, right, hoverBottom, ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_HOVER_BACKGROUND));
+		}
+		if (active) {
+			guiGraphics.fill(x, y, x + ACTIVE_ACCENT_WIDTH, bottom, ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_ACTIVE_ACCENT));
+		}
+		guiGraphics.fill(x, bottom - 1, right, bottom, ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_DIVIDER));
+
+		int textColor = getTextColor(active, hovered);
+		int textX = area.getX() + getTextLeftPadding(active);
+		int textHeight = visibleNameLines.size() * font.lineHeight;
+		int textY = area.getY() + Math.round((area.getHeight() - textHeight) / 2.0f);
+		for (FormattedCharSequence visibleNameLine : visibleNameLines) {
+			guiGraphics.text(font, visibleNameLine, textX, textY, textColor, false);
+			textY += font.lineHeight;
+		}
+	}
+
+	private static int getBackgroundColor(boolean active) {
+		if (active) {
+			return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_ACTIVE_BACKGROUND);
+		}
+		return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_BACKGROUND);
+	}
+
+	private static int getTextColor(boolean active, boolean hovered) {
+		if (active) {
+			return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_ACTIVE_TEXT);
+		}
+		if (hovered) {
+			return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_HOVER_TEXT);
+		}
+		return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.NAV_ITEM_TEXT);
+	}
+
+	private int getIndent() {
+		return Math.min(MAX_INDENT, model.getCategoryDepth(categoryIndex) * INDENT_WIDTH);
+	}
+
+	private int getTextLeftPadding(boolean active) {
+		if (active) {
+			return ACTIVE_TEXT_LEFT_PADDING;
+		}
+		return TEXT_LEFT_PADDING;
+	}
+
+	private int getTextRightPadding() {
+		return TEXT_RIGHT_PADDING;
+	}
+
+	public ConfigInfo getInfo() {
+		return categoryWidget.getInfo();
+	}
+
+	@Override
+	public Optional<ConfigInputHandler> handleUserInput(@Nullable Screen screen, UserInput input) {
+		ImmutableRect2i navArea = navAreaSupplier.get();
+		if (navArea.contains(input.getMouseX(), input.getMouseY())
+			&& isMouseOver(input.getMouseX(), input.getMouseY())
+			&& ConfigInputUtil.isLeftClick(input)
+		) {
+			if (!input.isSimulate()) {
+				categorySelector.accept(categoryIndex);
+			}
+			return Optional.of(this);
+		}
+		return Optional.empty();
+	}
+}

@@ -1,0 +1,49 @@
+package eakerzt.jiv.config.gui;
+
+import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipPositioner;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.network.chat.Component;
+import net.minecraft.util.FormattedCharSequence;
+import org.jspecify.annotations.Nullable;
+
+import java.util.List;
+
+/**
+ * Base class for MezzConfig screens that exposes their occupied area to optional GUI integrations.
+ */
+public abstract class MezzConfigScreen extends ConfigScreenBase {
+	private final ConfigTooltipState<ClientTooltipPositioner> tooltipState = new ConfigTooltipState<>();
+
+	protected MezzConfigScreen(Component title) {
+		super(title);
+	}
+
+	/**
+	 * Returns the part of the screen occupied by this GUI, or {@code null} before it has been laid out.
+	 */
+	@Nullable
+	public abstract Rect2i getScreenArea();
+
+	public void setTooltipForNextRenderPass(List<FormattedCharSequence> tooltip) {
+		setTooltipForNextRenderPass(tooltip, DefaultTooltipPositioner.INSTANCE, true);
+	}
+
+	public void setTooltipForNextRenderPass(List<FormattedCharSequence> tooltip, ClientTooltipPositioner positioner, boolean override) {
+		tooltipState.set(tooltip, positioner, override);
+	}
+
+	public void clearTooltipForNextRenderPass() {
+		tooltipState.clear();
+	}
+
+	/** Called by each loader after screen overlays, which extractRenderState after vanilla's tooltip pass. */
+	public void renderDeferredTooltip(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
+		ConfigTooltipState.Tooltip<ClientTooltipPositioner> tooltip = tooltipState.take();
+		if (tooltip != null) {
+			ConfigRenderUtil.tooltip(guiGraphics, font, tooltip.lines(), tooltip.positioner(), mouseX, mouseY);
+		}
+	}
+
+}

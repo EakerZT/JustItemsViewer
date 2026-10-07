@@ -1,0 +1,9 @@
+{
+    "sources": [
+        {
+            "type": "directory",
+            "source": "jiv_config/atlas/gui",
+            "prefix": ""
+        }
+    ]
+}

@@ -1,0 +1,59 @@
+package eakerzt.jiv.config.gui.popup;
+
+import eakerzt.jiv.config.gui.util.ImmutableRect2i;
+import eakerzt.jiv.config.gui.api.ConfigInfo;
+import eakerzt.jiv.config.gui.input.UserInput;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import org.jspecify.annotations.Nullable;
+
+/**
+ * Internal lifecycle wrapper for popup content that edits a config value.
+ */
+public interface ConfigPopupSelector {
+	void updateBounds(ImmutableRect2i clipArea);
+
+	ImmutableRect2i getArea();
+
+	boolean isMouseOver(double mouseX, double mouseY);
+
+	ConfigInfo getInfo();
+
+	@Nullable
+	ConfigInfo getTooltipInfo(double mouseX, double mouseY);
+
+	void draw(GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY);
+
+	boolean onMouseClicked(UserInput input);
+
+	default boolean onMouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		return false;
+	}
+
+	default boolean onMouseDragged(double mouseX, double mouseY, int button) {
+		return false;
+	}
+
+	default void onMouseReleased(double mouseX, double mouseY, int button) {
+
+	}
+
+	default boolean charTyped(char codePoint, int modifiers) {
+		return false;
+	}
+
+	default boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		return false;
+	}
+
+	default boolean closesAfterClick() {
+		return true;
+	}
+
+	default void onOpened() {
+
+	}
+
+	default void onClosed() {
+
+	}
+}

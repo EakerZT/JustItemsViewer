@@ -1,0 +1,27 @@
+package eakerzt.jiv.common.platform;
+
+public interface IPlatformHelper {
+	IPlatformItemStackHelper getItemStackHelper();
+
+	IPlatformFluidHelperInternal<?> getFluidHelper();
+
+	IPlatformRenderHelper getRenderHelper();
+
+	IPlatformRecipeHelper getRecipeHelper();
+
+	IPlatformBrewingHelper getBrewingHelper();
+
+	IPlatformConfigHelper getConfigHelper();
+
+	IPlatformInputHelper getInputHelper();
+
+	IPlatformScreenHelper getScreenHelper();
+
+	IPlatformIngredientHelper getIngredientHelper();
+
+	IPlatformModHelper getModHelper();
+
+	IPlatformWorldHelper getWorldHelper();
+
+	ITestHelper getTestHelper();
+}

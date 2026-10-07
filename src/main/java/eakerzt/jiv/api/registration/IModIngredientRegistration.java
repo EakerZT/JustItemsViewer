@@ -1,0 +1,60 @@
+package eakerzt.jiv.api.registration;
+
+import com.mojang.serialization.Codec;
+import eakerzt.jiv.api.IModPlugin;
+import eakerzt.jiv.api.helpers.IColorHelper;
+import eakerzt.jiv.api.ingredients.IIngredientHelper;
+import eakerzt.jiv.api.ingredients.IIngredientRenderer;
+import eakerzt.jiv.api.ingredients.IIngredientType;
+import eakerzt.jiv.api.ingredients.subtypes.ISubtypeManager;
+import eakerzt.jiv.api.runtime.IIngredientManager;
+import net.minecraft.util.context.ContextMap;
+import org.jetbrains.annotations.ApiStatus;
+
+import java.util.Collection;
+
+/**
+ * Allows registration of new types of ingredients, beyond the basic ItemStack and FluidStack.
+ * After every mod has registered its ingredients, the {@link IIngredientManager} is created from this information.
+ *
+ * This is given to your {@link IModPlugin#registerIngredients(IModIngredientRegistration)}.
+ */
+@ApiStatus.NonExtendable
+public interface IModIngredientRegistration {
+	ISubtypeManager getSubtypeManager();
+
+	/**
+	 * Gets an {@link IColorHelper} to help in implementing {@link IIngredientHelper#getColors(Object)} for {@link IIngredientHelper}s that are being registered.
+	 *
+	 * @since 7.6.3
+	 */
+	IColorHelper getColorHelper();
+
+	/**
+	 * @return the current context for resolving recipe displays.
+	 *
+	 * @since 29.32.0
+	 */
+	ContextMap getContextMap();
+
+	/**
+	 * Register a new type of ingredient.
+	 *
+	 * @param ingredientType       The type of the ingredient.
+	 * @param allIngredients       A collection of every to be displayed in the ingredient list.
+	 * @param ingredientHelper     The ingredient helper to allows JIV to get information about ingredients for searching and other purposes.
+	 * @param ingredientRenderer   The ingredient render to allow JIV to render these ingredients in the ingredient list.
+	 *                             This ingredient renderer must be configured to draw in a 16 by 16 pixel space.
+	 * @param ingredientCodec      A serializer codec for this type of ingredient, used for saving ingredients to file.
+	 *                             The codec should support "normalized" ingredients, so as an optimization the count does not need to be encoded.
+	 *
+	 * @since 19.9.0
+	 */
+	<V> void register(
+		IIngredientType<V> ingredientType,
+		Collection<V> allIngredients,
+		IIngredientHelper<V> ingredientHelper,
+		IIngredientRenderer<V> ingredientRenderer,
+		Codec<V> ingredientCodec
+	);
+}

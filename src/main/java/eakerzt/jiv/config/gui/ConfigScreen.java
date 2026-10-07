@@ -1,0 +1,866 @@
+package eakerzt.jiv.config.gui;
+
+import com.mojang.blaze3d.platform.InputConstants;
+import eakerzt.jiv.config.api.schema.ConfigSchemaType;
+import eakerzt.jiv.config.api.schema.IConfigSchema;
+import eakerzt.jiv.config.gui.api.ConfigValueApplyMode;
+import eakerzt.jiv.config.gui.api.ConfigValueEditorType;
+import eakerzt.jiv.config.gui.api.IConfigScreenValue;
+import eakerzt.jiv.config.gui.api.IConfigValueEditorFactory;
+import eakerzt.jiv.config.gui.config.ConfigGuiOptions;
+import eakerzt.jiv.config.gui.entries.ConfigEntryWidget;
+import eakerzt.jiv.config.gui.entries.ConfigEntryWidgetFactory;
+import eakerzt.jiv.config.gui.info.ConfigServerInfo;
+import eakerzt.jiv.config.gui.input.InputType;
+import eakerzt.jiv.config.gui.input.UserInput;
+import eakerzt.jiv.config.gui.model.ConfigCategoryWidget;
+import eakerzt.jiv.config.gui.model.ConfigNavItem;
+import eakerzt.jiv.config.gui.model.ConfigScreenHistory;
+import eakerzt.jiv.config.gui.model.ConfigScreenModel;
+import eakerzt.jiv.config.gui.model.ConfigValueChange;
+import eakerzt.jiv.config.gui.popup.ConfigPopupSelector;
+import eakerzt.jiv.config.gui.popup.ConfigValueSelectorInputHandler;
+import eakerzt.jiv.config.gui.remote.RemoteConfigEditor;
+import eakerzt.jiv.config.gui.screenlist.ConfigScreenListEntry;
+import eakerzt.jiv.config.gui.textures.ConfigTextures;
+import eakerzt.jiv.config.gui.util.ImmutableRect2i;
+
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
+import net.minecraft.client.gui.components.EditBox;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.renderer.Rect2i;
+import net.minecraft.client.resources.sounds.SimpleSoundInstance;
+import net.minecraft.network.chat.Component;
+import net.minecraft.sounds.SoundEvents;
+import org.jspecify.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.IdentityHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CompletableFuture;
+import java.util.stream.Stream;
+
+/**
+ * Main in-game config screen that wires the model, layout, view, and input routing together.
+ */
+public class ConfigScreen extends MezzConfigScreen {
+	static Screen create(
+		@Nullable Screen parent,
+		String modId,
+		Component title,
+		ConfigScreenSchema clientSchema,
+		ConfigChangesHandler changesHandler,
+		Map<ConfigValueEditorType<?>, IConfigValueEditorFactory<?>> valueEditorFactories,
+		ConfigScreenNavigation navigation
+	) {
+		if (isConfigScreenOpen(parent)) {
+			return parent;
+		}
+		return new ConfigScreen(parent, modId, title, clientSchema, changesHandler, valueEditorFactories, navigation);
+	}
+
+	public static boolean isConfigScreenOpen(@Nullable Screen screen) {
+		return screen instanceof ConfigScreen ||
+			screen instanceof PendingChangesScreen;
+	}
+
+	public static boolean isCapturingKeyBinding(Screen screen) {
+		return screen instanceof ConfigScreen configScreen && configScreen.isCapturingKeyboardInput();
+	}
+
+	private final ConfigInputRouter inputHandler;
+	private final EditBox searchBox;
+	private final ConfigScreenLayout layout = new ConfigScreenLayout();
+	private final ConfigScreenModel model;
+	private final ConfigScreenController controller;
+	private final ConfigScreenModTabs modTabs;
+	private final ConfigScreenView view;
+	private final ConfigScreenNavigation navigation;
+
+	@Nullable
+	private final Screen parent;
+
+	@Nullable
+	private ConfigPopupSelector valueSelector;
+	private boolean changeRequestPending;
+
+	private ConfigScreen(
+		@Nullable Screen parent,
+		String modId,
+		Component title,
+		ConfigScreenSchema clientSchema,
+		ConfigChangesHandler changesHandler,
+		Map<ConfigValueEditorType<?>, IConfigValueEditorFactory<?>> valueEditorFactories,
+		ConfigScreenNavigation navigation
+	) {
+		super(title);
+		this.parent = parent;
+		this.navigation = navigation;
+		ConfigTextures textures = ConfigTextures.get();
+
+		Font font = Minecraft.getInstance().font;
+		this.searchBox = new EditBox(font, 0, 0, 0, ConfigScreenLayout.SEARCH_HEIGHT, Component.translatable("jiv_config.config.screen.search"));
+		this.searchBox.setMaxLength(64);
+		this.searchBox.setBordered(false);
+		this.searchBox.setHint(Component.translatable("jiv_config.config.screen.search"));
+		updateSearchTextColor("");
+
+		this.model = new ConfigScreenModel(createCategories(clientSchema));
+		List<ConfigScreenCategory> categories = model.getCategories();
+		this.model.setActiveCategoryIndex(model.getFirstContentCategory(ConfigScreenHistory.getInitialCategoryIndex(modId, categories)));
+		this.controller = new ConfigScreenController(changesHandler, model, layout, () -> {
+			if (!searchBox.getValue().isEmpty()) {
+				searchBox.setValue("");
+			}
+		}, index -> ConfigScreenHistory.rememberCategory(modId, model.getCategories().get(index)));
+		this.modTabs = new ConfigScreenModTabs(modId, navigation.getScreenListEntries());
+		this.view = new ConfigScreenView(title, searchBox, model, layout, controller, modTabs, textures);
+		this.searchBox.setResponder(searchText -> {
+			updateSearchTextColor(searchText);
+			controller.setSearchText(searchText);
+		});
+
+		List<ConfigInputHandler> allInputHandlers = new ArrayList<>();
+		ConfigEntryWidgetFactory entryWidgetFactory = new ConfigEntryWidgetFactory(
+			this::openValueSelector,
+			controller::updateContentLayout,
+			textures,
+			valueEditorFactories
+		);
+		Map<Object, ConfigEntryWidget<?>> entryWidgetsByValueKey = new IdentityHashMap<>();
+		List<ConfigEntryWidget<?>> allEntryWidgets = new ArrayList<>();
+		ConfigServerInfo serverInfo = new ConfigServerInfo(clientSchema);
+		for (int i = 0; i < categories.size(); i++) {
+			ConfigScreenCategory category = categories.get(i);
+			List<ConfigEntryWidget<?>> entryWidgets = createEntryWidgets(
+				category,
+				clientSchema,
+				entryWidgetsByValueKey,
+				allEntryWidgets,
+				entryWidgetFactory
+			);
+			ConfigCategoryWidget widget = new ConfigCategoryWidget(
+				category,
+				entryWidgets,
+				model.getInlineSections(i),
+				controller::updateContentLayout,
+				serverInfo.forValues(model.getCategoryIndexes(i).stream()
+					.flatMap(index -> categories.get(index).getConfigValues().stream()))
+			);
+			model.addCategoryWidget(widget);
+
+			ConfigNavItem navItem = new ConfigNavItem(
+				category.getLocalizedName(),
+				i,
+				widget,
+				layout::getNavArea,
+				controller::setActiveCategory,
+				model
+			);
+			model.addNavItem(navItem);
+		}
+		allEntryWidgets
+			.stream()
+			.peek(entry -> entry.setAccessDescriptions(serverInfo.forValues(Stream.of(entry.getConfigValue()))))
+			.map(this::createEntryInputHandler)
+			.forEach(allInputHandlers::add);
+		model.getCategoryWidgets()
+			.stream()
+			.flatMap(ConfigCategoryWidget::getAllSectionHeaders)
+			.forEach(allInputHandlers::add);
+		allInputHandlers.addAll(model.getNavItems());
+
+		allInputHandlers.add(0, new ConfigValueSelectorInputHandler(
+			() -> valueSelector,
+			() -> ConfigScreenView.getValueSelectorClipArea(layout.getContentArea()),
+			this::closeValueSelector,
+			controller::updateContentLayout
+		));
+		this.inputHandler = new ConfigInputRouter(allInputHandlers);
+	}
+
+	private List<ConfigEntryWidget<?>> createEntryWidgets(
+		ConfigScreenCategory category,
+		ConfigScreenSchema schema,
+		Map<Object, ConfigEntryWidget<?>> entryWidgetsByValueKey,
+		List<ConfigEntryWidget<?>> allEntryWidgets,
+		ConfigEntryWidgetFactory entryWidgetFactory
+	) {
+		List<ConfigEntryWidget<?>> entryWidgets = new ArrayList<>();
+		for (IConfigScreenValue<?> configValue : category.getConfigValues()) {
+			entryWidgets.add(getOrCreateEntryWidget(schema, entryWidgetsByValueKey, allEntryWidgets, entryWidgetFactory, configValue));
+		}
+		return entryWidgets;
+	}
+
+	private static List<ConfigScreenCategory> createCategories(ConfigScreenSchema schema) {
+		return List.copyOf(schema.getCategories());
+	}
+
+	private ConfigEntryWidget<?> getOrCreateEntryWidget(
+		ConfigScreenSchema schema,
+		Map<Object, ConfigEntryWidget<?>> entryWidgetsByValueKey,
+		List<ConfigEntryWidget<?>> allEntryWidgets,
+		ConfigEntryWidgetFactory entryWidgetFactory,
+		IConfigScreenValue<?> configValue
+	) {
+		Optional<IConfigSchema> backingSchema = schema.findBackingSchema(configValue);
+		configValue = useSupportedApplyMode(configValue, backingSchema.orElse(null));
+		Object identityKey = configValue.getIdentityKey();
+		ConfigEntryWidget<?> entryWidget = entryWidgetsByValueKey.get(identityKey);
+		if (entryWidget == null) {
+			entryWidget = entryWidgetFactory.create(configValue);
+			entryWidget.setImmediateChangeHandler(this::applyImmediateChange);
+			entryWidget.setEditableSupplier(() -> !changeRequestPending && backingSchema
+				.map(RemoteConfigEditor.getInstance()::isEditable)
+				.orElse(true));
+			entryWidgetsByValueKey.put(identityKey, entryWidget);
+			allEntryWidgets.add(entryWidget);
+		}
+		return entryWidget;
+	}
+
+	private static IConfigScreenValue<?> useSupportedApplyMode(
+		IConfigScreenValue<?> configValue,
+		@Nullable IConfigSchema backingSchema
+	) {
+		if (backingSchema != null && requiresOnApply(backingSchema)) {
+			return withApplyMode(configValue, ConfigValueApplyMode.ON_APPLY);
+		}
+		return configValue;
+	}
+
+	private static boolean requiresOnApply(IConfigSchema schema) {
+		return schema.getType() == ConfigSchemaType.SERVER;
+	}
+
+	@SuppressWarnings("unchecked")
+	private static <T> IConfigScreenValue<T> withApplyMode(
+		IConfigScreenValue<?> configValue,
+		ConfigValueApplyMode applyMode
+	) {
+		IConfigScreenValue<T> typedValue = (IConfigScreenValue<T>) configValue;
+		return ConfigValueCategoryPath.copyTo(typedValue, IConfigScreenValue.withApplyMode(typedValue, applyMode));
+	}
+
+	private boolean applyImmediateChange(ConfigValueChange<?> change) {
+		boolean succeeded = controller.applyImmediateChange(change);
+		if (succeeded) {
+			refreshLayout();
+		}
+		return succeeded;
+	}
+
+	private ConfigInputHandler createEntryInputHandler(ConfigEntryWidget<?> entry) {
+		ConfigInputHandler entryInputHandler = entry.createInputHandler();
+		return new ConfigInputHandler() {
+			@Override
+			public Optional<ConfigInputHandler> handleUserInput(@Nullable Screen screen, UserInput input) {
+				if (!entry.isEditable()) {
+					return Optional.empty();
+				}
+				ImmutableRect2i displayArea = layout.getContentArea();
+				if (!entry.getArea().equals(ImmutableRect2i.EMPTY) &&
+					displayArea.contains(input.getMouseX(), input.getMouseY()) &&
+					entry.isMouseOver(input.getMouseX(), input.getMouseY())
+				) {
+					return entryInputHandler.handleUserInput(screen, input);
+				}
+				return Optional.empty();
+			}
+
+			@Override
+			public void unfocus() {
+				entryInputHandler.unfocus();
+			}
+
+			@Override
+			public Optional<ConfigInputHandler> handleMouseScrolled(double mouseX, double mouseY, double scrollDeltaX, double scrollDeltaY) {
+				if (entry.isEditable() && !entry.getArea().equals(ImmutableRect2i.EMPTY)) {
+					return entryInputHandler.handleMouseScrolled(mouseX, mouseY, scrollDeltaX, scrollDeltaY);
+				}
+				return Optional.empty();
+			}
+		};
+	}
+
+	private void updateSearchTextColor(String searchText) {
+		this.searchBox.setTextColor(getSearchTextColor(searchText));
+	}
+
+	private static int getSearchTextColor(String searchText) {
+		if (searchText.isEmpty()) {
+			return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.CONFIG_SCREEN_SEARCH_HINT);
+		}
+		return ConfigGuiColors.getColor(ConfigGuiColors.GuiColor.CONFIG_SCREEN_SEARCH_TEXT);
+	}
+
+	private void openValueSelector(ConfigPopupSelector selector) {
+		closeValueSelector();
+		selector.updateBounds(ConfigScreenView.getValueSelectorClipArea(layout.getContentArea()));
+		this.valueSelector = selector;
+		selector.onOpened();
+	}
+
+	private void closeValueSelector() {
+		ConfigPopupSelector valueSelector = this.valueSelector;
+		this.valueSelector = null;
+		if (valueSelector != null) {
+			valueSelector.onClosed();
+		}
+	}
+
+	private boolean isCapturingKeyboardInput() {
+		return controller.getVisibleEntryWidgets()
+			.stream()
+			.filter(ConfigEntryWidget::isEditable)
+			.anyMatch(ConfigEntryWidget::isCapturingKeyboardInput);
+	}
+
+	private void flushPendingInput() {
+		inputHandler.handleGuiChange();
+		closeValueSelector();
+		updateTextInputFocus();
+	}
+
+	private void updateTextInputFocus() {
+		// Custom entry and popup editors need text events just like a focused EditBox.
+		// Key-binding capture deliberately does not enable text input.
+		boolean editingText = valueSelector != null || controller.getVisibleEntryWidgets().stream()
+			.filter(ConfigEntryWidget::isEditable)
+			.anyMatch(ConfigEntryWidget::isCapturingTextInput);
+		Minecraft.getInstance().textInputManager().onTextInputFocusChange(editingText);
+	}
+
+	@Nullable
+	public Rect2i getValueSelectorArea() {
+		ConfigPopupSelector valueSelector = this.valueSelector;
+		if (valueSelector == null) {
+			return null;
+		}
+		ImmutableRect2i clipArea = ConfigScreenView.getValueSelectorClipArea(layout.getContentArea());
+		valueSelector.updateBounds(clipArea);
+		ImmutableRect2i intersection = getIntersection(valueSelector.getArea(), clipArea);
+		if (intersection == null) {
+			return null;
+		}
+		return new Rect2i(
+			intersection.getX(),
+			intersection.getY(),
+			intersection.getWidth(),
+			intersection.getHeight()
+		);
+	}
+
+	@Nullable
+	public Rect2i getModTabsArea() {
+		ImmutableRect2i area = modTabs.getTabsArea();
+		if (area.isEmpty()) {
+			return null;
+		}
+		return new Rect2i(
+			area.getX(),
+			area.getY(),
+			area.getWidth(),
+			area.getHeight()
+		);
+	}
+
+	@Nullable
+	private static ImmutableRect2i getIntersection(ImmutableRect2i first, ImmutableRect2i second) {
+		int x = Math.max(first.getX(), second.getX());
+		int y = Math.max(first.getY(), second.getY());
+		int right = Math.min(first.getX() + first.getWidth(), second.getX() + second.getWidth());
+		int bottom = Math.min(first.getY() + first.getHeight(), second.getY() + second.getHeight());
+		if (right <= x || bottom <= y) {
+			return null;
+		}
+		return new ImmutableRect2i(x, y, right - x, bottom - y);
+	}
+
+	@Nullable
+	@Override
+	public Rect2i getScreenArea() {
+		ImmutableRect2i area = layout.getArea();
+		if (area.isEmpty()) {
+			return null;
+		}
+		return new Rect2i(
+			area.getX(),
+			area.getY(),
+			area.getWidth(),
+			area.getHeight()
+		);
+	}
+
+	@Override
+	protected void init() {
+		super.init();
+		updateScreenBounds();
+		modTabs.updateLayout(layout.getArea());
+		addWidget(searchBox);
+
+		layout.resetNavScroll();
+		controller.updateNavLayout();
+		if (model.hasActiveCategory()) {
+			controller.setActiveCategory(model.getActiveCategoryIndex());
+		} else {
+			controller.updateContentLayout();
+		}
+		if (ConfigGuiOptions.focusSearchOnOpen()) {
+			searchBox.setFocused(true);
+		}
+		controller.startListening();
+	}
+
+	@Override
+	public void removed() {
+		controller.stopListening();
+		closeValueSelector();
+		Minecraft.getInstance().textInputManager().stopTextInput();
+		super.removed();
+	}
+
+	@Override
+	public void onClose() {
+		requestClose();
+	}
+
+	private void requestClose() {
+		requestLeave(this::closeWithoutPrompt);
+	}
+
+	private void requestOpenScreenList() {
+		requestLeave(this::openScreenListWithoutPrompt);
+	}
+
+	private void requestOpenConfigScreen(ConfigScreenListEntry entry) {
+		requestLeave(() -> openConfigScreenWithoutPrompt(entry));
+	}
+
+	private void requestLeave(Runnable leaveAction) {
+		if (changeRequestPending) {
+			return;
+		}
+		flushPendingInput();
+		if (controller.hasPendingChanges()) {
+			if (ConfigGuiOptions.confirmPendingChangesOnClose()) {
+				openPendingChangesConfirmation(leaveAction);
+				return;
+			}
+			applyPendingChanges(leaveAction, () -> {});
+			return;
+		}
+		leaveAction.run();
+	}
+
+	private void closeWithoutPrompt() {
+		if (minecraft != null) {
+			ConfigClientUtil.setScreen(parent);
+		}
+	}
+
+	private void openScreenListWithoutPrompt() {
+		if (minecraft != null) {
+			ConfigClientUtil.setScreen(navigation.createScreenList(parent));
+		}
+	}
+
+	private void openConfigScreenWithoutPrompt(ConfigScreenListEntry entry) {
+		if (minecraft != null) {
+			Screen nextScreen = entry.factory().create(parent);
+			if (nextScreen instanceof ConfigScreen configScreen) {
+				configScreen.modTabs.copyScrollPositionFrom(modTabs);
+			}
+			ConfigClientUtil.setScreen(nextScreen);
+		}
+	}
+
+	private void openPendingChangesConfirmation(Runnable leaveAction) {
+		if (minecraft == null) {
+			return;
+		}
+		PendingChangesScreen pendingChangesScreen = new PendingChangesScreen(
+			applyChanges -> {
+				if (applyChanges) {
+					ConfigClientUtil.setScreen(this);
+					applyPendingChanges(leaveAction, () -> {});
+					return;
+				} else {
+					controller.discardPendingChanges();
+				}
+				leaveAction.run();
+			},
+			() -> ConfigClientUtil.setScreen(this),
+			controller.getPendingChangesRestartRequirement(),
+			controller.getPendingConfigChanges()
+		);
+		ConfigClientUtil.setScreen(pendingChangesScreen);
+	}
+
+	private void applyPendingChanges() {
+		applyPendingChanges(() -> {}, () -> {});
+	}
+
+	private void applyPendingChanges(Runnable successAction, Runnable failureAction) {
+		if (changeRequestPending) {
+			return;
+		}
+		startChangeRequest(controller.applyPendingChanges(), successAction, failureAction);
+	}
+
+	private void undoChanges() {
+		if (changeRequestPending) {
+			return;
+		}
+		startChangeRequest(controller.undoChanges(), () -> {}, () -> {});
+	}
+
+	private void startChangeRequest(
+		CompletableFuture<ConfigChangesResult> request,
+		Runnable successAction,
+		Runnable failureAction
+	) {
+		if (changeRequestPending) {
+			return;
+		}
+		changeRequestPending = true;
+		request.whenComplete((@Nullable ConfigChangesResult result, @Nullable Throwable throwable) -> runOnClientThread(() -> {
+			changeRequestPending = false;
+			refreshLayout();
+			if (throwable == null && result != null && result.succeeded()) {
+				successAction.run();
+			} else {
+				failureAction.run();
+			}
+		}));
+	}
+
+	private void runOnClientThread(Runnable task) {
+		Minecraft minecraft = this.minecraft;
+		if (minecraft == null || minecraft.isSameThread()) {
+			task.run();
+		} else {
+			minecraft.execute(task);
+		}
+	}
+
+	private void refreshLayout() {
+		modTabs.updateEntries(navigation.getScreenListEntries());
+		updateScreenBounds();
+		modTabs.updateLayout(layout.getArea());
+		controller.updateNavLayout();
+		controller.updateContentLayout();
+		updateValueSelectorBounds();
+	}
+
+	private void updateScreenBounds() {
+		layout.updateScreenBounds(
+			width,
+			height,
+			searchBox,
+			canOpenScreenList(),
+			modTabs.getRequiredScreenLeftInset(),
+			modTabs.getRequiredScreenRightInset()
+		);
+	}
+
+	@Override
+	public boolean charTyped(char codePoint, int modifiers) {
+		ConfigPopupSelector valueSelector = this.valueSelector;
+		if (valueSelector != null && valueSelector.charTyped(codePoint, modifiers)) {
+			return true;
+		}
+		if (isCapturingKeyboardInput()) {
+			forwardCharTypedToEntries(codePoint, modifiers);
+			return true;
+		}
+		if (searchBox.isFocused() && ConfigInputUtil.charTyped(searchBox, codePoint, modifiers)) {
+			return true;
+		}
+		if (forwardCharTypedToEntries(codePoint, modifiers)) {
+			return true;
+		}
+		return super.charTyped(codePoint, modifiers);
+	}
+
+	@Override
+	public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+		try {
+			return handleKeyPressed(keyCode, scanCode, modifiers);
+		} finally {
+			updateTextInputFocus();
+		}
+	}
+
+	private boolean handleKeyPressed(int keyCode, int scanCode, int modifiers) {
+		ConfigPopupSelector valueSelector = this.valueSelector;
+		if (valueSelector != null) {
+			if (valueSelector.keyPressed(keyCode, scanCode, modifiers)) {
+				return true;
+			}
+			if (keyCode == InputConstants.KEY_ESCAPE) {
+				closeValueSelector();
+				return true;
+			}
+		}
+		UserInput input = UserInput.fromVanilla(keyCode, scanCode, modifiers, InputType.IMMEDIATE);
+		if (isCapturingKeyboardInput()) {
+			forwardKeyPressedToEntries(keyCode, scanCode, modifiers);
+			return true;
+		}
+		if (searchBox.isFocused()) {
+			if (ConfigInputUtil.keyPressed(searchBox, keyCode, scanCode, modifiers)) {
+				return true;
+			}
+			if (input.is(Minecraft.getInstance().options.keyInventory)) {
+				return true;
+			}
+		}
+		if (forwardKeyPressedToEntries(keyCode, scanCode, modifiers)) {
+			return true;
+		}
+		if (input.is(Minecraft.getInstance().options.keyInventory)) {
+			requestClose();
+			return true;
+		}
+		return super.keyPressed(keyCode, scanCode, modifiers);
+	}
+
+	private boolean forwardCharTypedToEntries(char codePoint, int modifiers) {
+		for (ConfigEntryWidget<?> entry : controller.getVisibleEntryWidgets()) {
+			if (entry.isEditable() && entry.charTyped(codePoint, modifiers)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private boolean forwardKeyPressedToEntries(int keyCode, int scanCode, int modifiers) {
+		for (ConfigEntryWidget<?> entry : controller.getVisibleEntryWidgets()) {
+			if (entry.isEditable() && entry.keyPressed(keyCode, scanCode, modifiers)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean keyReleased(int keyCode, int scanCode, int modifiers) {
+		if (forwardKeyReleasedToEntries(keyCode, scanCode, modifiers)) {
+			return true;
+		}
+		return super.keyReleased(keyCode, scanCode, modifiers);
+	}
+
+	private boolean forwardKeyReleasedToEntries(int keyCode, int scanCode, int modifiers) {
+		for (ConfigEntryWidget<?> entry : controller.getVisibleEntryWidgets()) {
+			if (entry.isEditable() && entry.keyReleased(keyCode, scanCode, modifiers)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	@Override
+	public boolean mouseClicked(double mouseX, double mouseY, int button) {
+		if (modTabs.mouseClicked(mouseX, mouseY, button)) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.startResizeDrag(mouseX, mouseY, modTabs.getResizeExclusionArea(mouseY))) {
+			flushPendingInput();
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.startNavigationResize(mouseX, mouseY)) {
+			flushPendingInput();
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && isActionButton(mouseX, mouseY)) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_RIGHT && searchBox.isMouseOver(mouseX, mouseY)) {
+			if (!searchBox.getValue().isEmpty()) {
+				searchBox.setValue("");
+			}
+			searchBox.setFocused(true);
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && controller.startContentScrollDrag(mouseX, mouseY)) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && controller.startNavScrollDrag(mouseX, mouseY)) {
+			return true;
+		}
+		if (searchBox.isFocused() && !searchBox.isMouseOver(mouseX, mouseY)) {
+			searchBox.setFocused(false);
+		}
+		boolean ret = UserInput.fromVanilla(mouseX, mouseY, button, InputType.SIMULATE)
+			.map(this::handleInput)
+			.orElse(false);
+		return ret || super.mouseClicked(mouseX, mouseY, button);
+	}
+
+	@Override
+	public boolean mouseReleased(double mouseX, double mouseY, int button) {
+		ConfigScreenModTabs.ClickResult modTabResult = modTabs.mouseReleased(mouseX, mouseY, button);
+		if (modTabResult.handled()) {
+			if (modTabResult.playSound()) {
+				Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+			}
+			ConfigScreenListEntry entry = modTabResult.entry();
+			if (entry != null) {
+				requestOpenConfigScreen(entry);
+			}
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.isResizing()) {
+			layout.finishResizeDrag()
+				.ifPresent(resizedArea -> ConfigGuiOptions.setWindowSize(resizedArea.getWidth(), resizedArea.getHeight()));
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.isResizingNavigation()) {
+			layout.finishNavigationResize().ifPresent(ConfigGuiOptions::setNavigationWidth);
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && (controller.stopContentScrollDrag() || controller.stopNavScrollDrag())) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT) {
+			if (handleActionButton(mouseX, mouseY)) {
+				Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+				return true;
+			}
+			if (isActionButton(mouseX, mouseY)) {
+				return true;
+			}
+		}
+		boolean ret = UserInput.fromVanilla(mouseX, mouseY, button, InputType.EXECUTE)
+			.map(this::handleInput)
+			.orElse(false);
+		if (ret) {
+			Minecraft.getInstance().getSoundManager().play(SimpleSoundInstance.forUI(SoundEvents.UI_BUTTON_CLICK, 1.0F));
+		}
+		return ret || super.mouseReleased(mouseX, mouseY, button);
+	}
+
+	private boolean isActionButton(double mouseX, double mouseY) {
+		return layout.getScreenListButtonArea().contains(mouseX, mouseY) ||
+			layout.getApplyPendingChangesButtonArea().contains(mouseX, mouseY) ||
+			layout.getUndoChangesButtonArea().contains(mouseX, mouseY);
+	}
+
+	private boolean handleActionButton(double mouseX, double mouseY) {
+		if (changeRequestPending) {
+			return false;
+		}
+		if (layout.getScreenListButtonArea().contains(mouseX, mouseY)) {
+			requestOpenScreenList();
+			return true;
+		}
+		if (layout.getApplyPendingChangesButtonArea().contains(mouseX, mouseY)) {
+			flushPendingInput();
+			if (controller.hasPendingChanges()) {
+				applyPendingChanges();
+				return true;
+			}
+			return false;
+		}
+		if (layout.getUndoChangesButtonArea().contains(mouseX, mouseY)) {
+			flushPendingInput();
+			if (controller.hasUndoableChanges()) {
+				undoChanges();
+				return true;
+			}
+			return false;
+		}
+		return false;
+	}
+
+	private boolean canOpenScreenList() {
+		return navigation.canOpenScreenList(parent);
+	}
+
+	@Override
+	public boolean mouseDragged(double mouseX, double mouseY, int button, double dragX, double dragY) {
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && modTabs.isPressing()) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.isResizing()) {
+			if (layout.dragResize(mouseX, mouseY, width, height)) {
+				refreshLayout();
+			}
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && layout.isResizingNavigation()) {
+			if (layout.dragNavigationResize(mouseX)) {
+				refreshLayout();
+			}
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && controller.dragContentScroll(mouseY)) {
+			return true;
+		}
+		if (button == InputConstants.MOUSE_BUTTON_LEFT && controller.dragNavScroll(mouseY)) {
+			return true;
+		}
+		if (inputHandler.handleMouseDragged(this, mouseX, mouseY, button, dragX, dragY)) {
+			if (inputHandler.allowsContentAutoScrollForDrag(button) && controller.autoScrollContentForDrag(mouseY)) {
+				inputHandler.handleMouseDragged(this, mouseX, mouseY, button, dragX, dragY);
+			}
+			return true;
+		}
+		return super.mouseDragged(mouseX, mouseY, button, dragX, dragY);
+	}
+
+	private boolean handleInput(UserInput input) {
+		try {
+			return this.inputHandler.handleUserInput(this, input);
+		} finally {
+			updateTextInputFocus();
+		}
+	}
+
+	@Override
+	public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
+		if (modTabs.mouseScrolled(mouseX, mouseY, scrollY)) {
+			return true;
+		}
+		if (inputHandler.handleMouseScrolled(mouseX, mouseY, scrollX, scrollY)) {
+			return true;
+		}
+		if (controller.scroll(mouseX, mouseY, scrollY)) {
+			return true;
+		}
+		return super.mouseScrolled(mouseX, mouseY, scrollX, scrollY);
+	}
+
+	@Override
+	public void extractRenderState(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTick) {
+		if (minecraft == null) {
+			return;
+		}
+		updateSearchTextColor(searchBox.getValue());
+		extractTransparentBackground(guiGraphics);
+		controller.stepScrollPositions();
+		updateValueSelectorBounds();
+		if (view.extractRenderState(guiGraphics, mouseX, mouseY, partialTick, valueSelector)) {
+			updateScreenBounds();
+			controller.updateNavLayout();
+			controller.updateContentLayout();
+			updateValueSelectorBounds();
+		}
+		updateTextInputFocus();
+	}
+
+	private void updateValueSelectorBounds() {
+		ConfigPopupSelector valueSelector = this.valueSelector;
+		if (valueSelector != null) {
+			valueSelector.updateBounds(ConfigScreenView.getValueSelectorClipArea(layout.getContentArea()));
+		}
+	}
+
+}

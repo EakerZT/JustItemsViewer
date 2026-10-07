@@ -1,0 +1,95 @@
+package eakerzt.jiv.config.gui;
+
+import eakerzt.jiv.config.api.schema.IConfigSchema;
+import eakerzt.jiv.config.gui.api.IConfigGuiPlugin;
+import eakerzt.jiv.config.gui.api.IConfigScreenFactory;
+import eakerzt.jiv.config.gui.config.ConfigGuiOptions;
+import eakerzt.jiv.config.gui.screenlist.ConfigScreenFactoryRegistry;
+import eakerzt.jiv.config.gui.screenlist.ConfigScreenListEntry;
+import eakerzt.jiv.config.gui.screenlist.ConfigScreenListScreen;
+import eakerzt.jiv.config.gui.screenlist.ConfigScreenOwnerMetadataProvider;
+
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * Runtime setup for the config GUI implementation.
+ */
+public final class ConfigGui {
+	private ConfigGui() {
+
+	}
+
+	/**
+	 * Create config screen factories from discovered config GUI plugins.
+	 */
+	public static Map<String, IConfigScreenFactory> createScreenFactories(List<? extends IConfigGuiPlugin> plugins) {
+		return createScreenFactoriesFromInternalConfigs(List.of(), plugins);
+	}
+
+	/**
+	 * Create a config screen factory registry from discovered config GUI plugins.
+	 */
+	public static ConfigScreenFactoryRegistry createScreenFactoryRegistry(List<? extends IConfigGuiPlugin> plugins) {
+		return createScreenFactoryRegistryFromInternalConfigs(List.of(), plugins);
+	}
+
+	/**
+	 * Create config screen factories from the given MezzConfig schemas.
+	 */
+	public static Map<String, IConfigScreenFactory> createScreenFactories(
+		Collection<? extends IConfigSchema> schemas,
+		List<? extends IConfigGuiPlugin> plugins
+	) {
+		return createScreenFactoryRegistry(schemas, plugins).getFactories();
+	}
+
+	/**
+	 * Create a config screen factory registry from the given MezzConfig schemas.
+	 */
+	public static ConfigScreenFactoryRegistry createScreenFactoryRegistry(
+		Collection<? extends IConfigSchema> schemas,
+		List<? extends IConfigGuiPlugin> plugins
+	) {
+		return ConfigGuiPluginLoader.createScreenFactoryRegistryFromInternalConfigs(
+			MezzConfigScreenConfigs.getConfigScreens(schemas),
+			plugins,
+			false
+		);
+	}
+
+	/**
+	 * Create config screen factories from internal config screen metadata and discovered config GUI plugins.
+	 */
+	public static Map<String, IConfigScreenFactory> createScreenFactoriesFromInternalConfigs(
+		Collection<? extends ConfigScreenConfig> configScreens,
+		List<? extends IConfigGuiPlugin> plugins
+	) {
+		return createScreenFactoryRegistryFromInternalConfigs(configScreens, plugins).getFactories();
+	}
+
+	/**
+	 * Create config screen factories from internal config screen metadata and discovered config GUI plugins.
+	 */
+	public static ConfigScreenFactoryRegistry createScreenFactoryRegistryFromInternalConfigs(
+		Collection<? extends ConfigScreenConfig> configScreens,
+		List<? extends IConfigGuiPlugin> plugins
+	) {
+		return ConfigGuiPluginLoader.createScreenFactoryRegistryFromInternalConfigs(configScreens, plugins);
+	}
+
+	/**
+	 * Create a screen that lists all discovered config screens.
+	 */
+	public static IConfigScreenFactory createScreenListFactory(
+		ConfigScreenFactoryRegistry registry,
+		ConfigScreenOwnerMetadataProvider metadataProvider
+	) {
+		List<ConfigScreenListEntry> entries = ConfigScreenListEntry.create(registry.getEntries(), metadataProvider);
+		ConfigGuiOptions.setModNavigationEntries(entries);
+		IConfigScreenFactory screenListFactory = parent -> ConfigScreenListScreen.create(parent, entries);
+		registry.setScreenListFactory(screenListFactory, entries);
+		return screenListFactory;
+	}
+}

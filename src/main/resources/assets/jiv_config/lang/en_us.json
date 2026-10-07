@@ -1,0 +1,20 @@
+{
+  "jiv_config.config.name": "Name: %s",
+  "jiv_config.config.description": "Description: %s",
+  "jiv_config.config.valueValues": "Valid Values: %s",
+  "jiv_config.config.defaultValue": "Default Value: %s",
+  "jiv_config.config.requiresWorldRestart": "Requires a world restart to take effect.",
+  "jiv_config.config.requiresGameRestart": "Requires a game restart to take effect.",
+  "jiv_config.config.fileWatcher": "File Watching",
+  "jiv_config.config.fileWatcher.description": "Controls automatic config file watching and reload timing.",
+  "jiv_config.config.fileWatcher.enabled": "Automatic File Watching",
+  "jiv_config.config.fileWatcher.enabled.description": "Automatically watch config files and reload them when they are changed outside the game.",
+  "jiv_config.config.fileWatcher.changeSettlingDelayMilliseconds": "Change Settling Delay",
+  "jiv_config.config.fileWatcher.changeSettlingDelayMilliseconds.description": "Milliseconds to wait after the last filesystem event before reloading changed config files.",
+  "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds": "Missing Directory Retry Interval",
+  "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds.description": "Milliseconds between attempts to start watching config directories that do not exist yet.",
+  "jiv_config.config.logging": "Logging",
+  "jiv_config.config.logging.description": "Controls optional MezzConfig diagnostic logging.",
+  "jiv_config.config.logging.logUntranslatedKeys": "Log Untranslated Keys",
+  "jiv_config.config.logging.logUntranslatedKeys.description": "Log category and value localization keys that are missing from the active language. Enabled by default in development environments."
+}

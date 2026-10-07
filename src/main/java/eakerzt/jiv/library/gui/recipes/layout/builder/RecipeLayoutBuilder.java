@@ -1,0 +1,268 @@
+package eakerzt.jiv.library.gui.recipes.layout.builder;
+
+import eakerzt.jiv.api.gui.IRecipeLayoutDrawable;
+import eakerzt.jiv.api.gui.builder.IIngredientAcceptor;
+import eakerzt.jiv.api.gui.builder.IRecipeLayoutBuilder;
+import eakerzt.jiv.api.gui.builder.IRecipeSlotBuilder;
+import eakerzt.jiv.api.gui.drawable.IDrawable;
+import eakerzt.jiv.api.gui.drawable.IScalableDrawable;
+import eakerzt.jiv.api.ingredients.subtypes.UidContext;
+import eakerzt.jiv.api.recipe.IFocusGroup;
+import eakerzt.jiv.api.recipe.RecipeIngredientRole;
+import eakerzt.jiv.api.recipe.category.IRecipeCategory;
+import eakerzt.jiv.api.recipe.category.extensions.IRecipeCategoryDecorator;
+import eakerzt.jiv.api.recipe.types.IRecipeType;
+import eakerzt.jiv.api.runtime.IIngredientVisibility;
+import eakerzt.jiv.common.Internal;
+import eakerzt.jiv.common.util.ImmutablePoint2i;
+import eakerzt.jiv.common.util.Pair;
+import eakerzt.jiv.library.gui.ingredients.CycleTicker;
+import eakerzt.jiv.library.gui.ingredients.RecipeSlot;
+import eakerzt.jiv.library.gui.recipes.IngredientsTooltipCallback;
+import eakerzt.jiv.library.gui.recipes.OutputSlotTooltipCallback;
+import eakerzt.jiv.library.gui.recipes.RecipeLayout;
+import eakerzt.jiv.library.gui.recipes.ShapelessIcon;
+import eakerzt.jiv.library.ingredients.DisplayIngredientAcceptor;
+import eakerzt.jiv.library.ingredients.IIngredientManagerInternal;
+import net.minecraft.resources.Identifier;
+import net.minecraft.util.context.ContextMap;
+import org.jspecify.annotations.Nullable;
+
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.IntSummaryStatistics;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
+import java.util.function.Supplier;
+
+import eakerzt.jiv.library.ingredients.RecipeIngredientSupplier.FocusLink;
+
+public class RecipeLayoutBuilder<T> implements IRecipeLayoutBuilder {
+	private final List<RecipeSlotBuilder> visibleSlots = new ArrayList<>();
+	private final List<List<RecipeSlotBuilder>> focusLinkedSlots = new ArrayList<>();
+
+	private final IIngredientManagerInternal ingredientManager;
+	private final ContextMap contextMap;
+	private final IRecipeCategory<T> recipeCategory;
+	private final T recipe;
+
+	private boolean shapeless = false;
+	private int shapelessX = -1;
+	private int shapelessY = -1;
+	private int recipeTransferX = -1;
+	private int recipeTransferY = -1;
+	private int nextSlotIndex = 0;
+
+	public RecipeLayoutBuilder(IRecipeCategory<T> recipeCategory, T recipe, IIngredientManagerInternal ingredientManager, ContextMap contextMap) {
+		this.recipeCategory = recipeCategory;
+		this.recipe = recipe;
+		this.ingredientManager = ingredientManager;
+		this.contextMap = contextMap;
+	}
+
+	@Override
+	public IRecipeSlotBuilder addSlot(RecipeIngredientRole role) {
+		RecipeSlotBuilder slot = new RecipeSlotBuilder(ingredientManager, contextMap, nextSlotIndex++, role);
+
+		if (role == RecipeIngredientRole.OUTPUT) {
+			addOutputSlotTooltipCallback(slot);
+		}
+
+		this.visibleSlots.add(slot);
+		return slot;
+	}
+
+	private void addOutputSlotTooltipCallback(RecipeSlotBuilder slot) {
+		Identifier recipeId = recipeCategory.getIdentifier(recipe);
+		if (recipeId != null) {
+			IRecipeType<T> recipeType = recipeCategory.getRecipeType();
+			OutputSlotTooltipCallback callback = new OutputSlotTooltipCallback(recipeId, recipeType);
+			slot.addRichTooltipCallback(callback);
+		}
+	}
+
+	@Override
+	public IIngredientAcceptor<?> addInvisibleIngredients(RecipeIngredientRole role) {
+		return new RecipeSlotBuilder(ingredientManager, contextMap, nextSlotIndex++, role);
+	}
+
+	@Override
+	public void moveRecipeTransferButton(int posX, int posY) {
+		this.recipeTransferX = posX;
+		this.recipeTransferY = posY;
+	}
+
+	@Override
+	public void setShapeless() {
+		this.shapeless = true;
+	}
+
+	@Override
+	public void setShapeless(int posX, int posY) {
+		this.shapeless = true;
+		this.shapelessX = posX;
+		this.shapelessY = posY;
+	}
+
+	@Override
+	public void createFocusLink(IIngredientAcceptor<?>... slots) {
+		createFocusLink(List.of(slots));
+	}
+
+	@Override
+	public void createFocusLink(Collection<? extends IIngredientAcceptor<?>> slots) {
+		List<RecipeSlotBuilder> builders = new ArrayList<>();
+		// The focus-linked slots should have the same number of ingredients.
+		// Users can technically add more ingredients to the slots later,
+		// but it's probably not worth the effort of enforcing this very strictly.
+		int count = -1;
+		for (IIngredientAcceptor<?> slot : slots) {
+			RecipeSlotBuilder builder = (RecipeSlotBuilder) slot;
+			builders.add(builder);
+
+			DisplayIngredientAcceptor displayIngredientAcceptor = builder.getIngredientAcceptor();
+			int ingredientCount = displayIngredientAcceptor.getAllIngredients().size();
+			if (count == -1) {
+				count = ingredientCount;
+			} else if (count != ingredientCount) {
+				IntSummaryStatistics stats = slots.stream()
+					.map(RecipeSlotBuilder.class::cast)
+					.map(RecipeSlotBuilder::getIngredientAcceptor)
+					.map(DisplayIngredientAcceptor::getAllIngredients)
+					.mapToInt(Collection::size)
+					.summaryStatistics();
+				throw new IllegalArgumentException(
+					"All slots must have the same number of ingredients in order to create a focus link. " +
+						String.format("slot stats: %s", stats)
+				);
+			}
+		}
+
+		this.focusLinkedSlots.add(builders);
+	}
+
+	public Optional<RecipeLayout<T>> buildRecipeLayout(
+		IFocusGroup focuses,
+		Collection<IRecipeCategoryDecorator<T>> decorators,
+		IScalableDrawable recipeBackground,
+		int recipeBorderPadding
+	) {
+		ShapelessIcon shapelessIcon = createShapelessIcon(recipeCategory);
+		ImmutablePoint2i recipeTransferButtonPosition = getRecipeTransferButtonPosition(recipeCategory, recipeBorderPadding);
+
+		List<Pair<Integer, RecipeSlot>> slots = new ArrayList<>();
+
+		CycleTicker cycleTicker = CycleTicker.createWithRandomOffset();
+
+		IIngredientVisibility ingredientVisibility = Internal.getJivRuntime()
+			.getJivHelpers()
+			.getIngredientVisibility();
+		Set<RecipeSlotBuilder> focusLinkedSlots = new HashSet<>();
+		for (List<RecipeSlotBuilder> linkedSlots : this.focusLinkedSlots) {
+			FocusLink focusLink = new FocusLink(linkedSlots.stream()
+				.map(slot -> new FocusLink.Slot(
+					slot.getRole(),
+					slot.getIngredientAcceptor().getAllSlotIngredients()
+				))
+				.toList());
+			Set<Integer> linkedIndexes = focusLink.getVisibleIngredientIndexes(
+				focuses,
+				ingredientManager,
+				ingredient -> ingredientVisibility.isIngredientVisible(ingredient, UidContext.Recipe)
+			);
+			if (linkedIndexes == null) {
+				return Optional.empty();
+			}
+			for (RecipeSlotBuilder slotBuilder : linkedSlots) {
+				if (!visibleSlots.contains(slotBuilder)) {
+					continue;
+				}
+				Pair<Integer, RecipeSlot> slotDrawable = slotBuilder.build(
+					linkedIndexes,
+					focuses,
+					cycleTicker
+				);
+				slots.add(slotDrawable);
+			}
+			focusLinkedSlots.addAll(linkedSlots);
+		}
+
+		class LayoutSupplier implements Supplier<IRecipeLayoutDrawable<?>> {
+			private @Nullable IRecipeLayoutDrawable<?> drawable;
+			@Override
+			public @Nullable IRecipeLayoutDrawable<?> get() {
+				return drawable;
+			}
+		}
+		final LayoutSupplier layoutSupplier = new LayoutSupplier();
+
+		for (RecipeSlotBuilder slotBuilder : visibleSlots) {
+			if (!focusLinkedSlots.contains(slotBuilder)) {
+				if (slotBuilder.getRole() == RecipeIngredientRole.OUTPUT) {
+					slotBuilder.addRichTooltipCallback(new IngredientsTooltipCallback(layoutSupplier));
+				}
+				Pair<Integer, RecipeSlot> slotDrawable = slotBuilder.build(focuses, cycleTicker);
+				slots.add(slotDrawable);
+			}
+		}
+
+		RecipeLayout<T> recipeLayout = new RecipeLayout<>(
+			recipeCategory,
+			decorators,
+			recipe,
+			recipeBackground,
+			recipeBorderPadding,
+			shapelessIcon,
+			recipeTransferButtonPosition,
+			sortSlots(slots),
+			cycleTicker,
+			focuses
+		);
+
+		layoutSupplier.drawable = recipeLayout;
+
+		return Optional.of(recipeLayout);
+	}
+
+	private static List<RecipeSlot> sortSlots(List<Pair<Integer, RecipeSlot>> indexedSlots) {
+		return indexedSlots.stream()
+			.sorted(Comparator.comparingInt(Pair::first))
+			.map(Pair::second)
+			.toList();
+	}
+
+	@Nullable
+	private ShapelessIcon createShapelessIcon(IRecipeCategory<?> recipeCategory) {
+		if (!shapeless) {
+			return null;
+		}
+		IDrawable icon = Internal.getTextures().getShapelessIcon();
+		final int x;
+		final int y;
+		if (this.shapelessX >= 0 && this.shapelessY >= 0) {
+			x = this.shapelessX;
+			y = this.shapelessY;
+		} else {
+			// align to top-right
+			x = recipeCategory.getWidth() - icon.getWidth();
+			y = 0;
+		}
+		return new ShapelessIcon(icon, x, y);
+	}
+
+	private ImmutablePoint2i getRecipeTransferButtonPosition(IRecipeCategory<?> recipeCategory, int recipeBorderPadding) {
+		if (this.recipeTransferX >= 0 && this.recipeTransferY >= 0) {
+			return new ImmutablePoint2i(
+				this.recipeTransferX,
+				this.recipeTransferY
+			);
+		}
+		return new ImmutablePoint2i(
+			recipeCategory.getWidth() + recipeBorderPadding + RecipeLayout.RECIPE_BUTTON_SPACING,
+			recipeCategory.getHeight() + recipeBorderPadding - RecipeLayout.RECIPE_BUTTON_SIZE
+		);
+	}
+}

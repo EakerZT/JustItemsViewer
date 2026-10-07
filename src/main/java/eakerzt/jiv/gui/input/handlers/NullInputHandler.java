@@ -1,0 +1,22 @@
+package eakerzt.jiv.gui.input.handlers;
+
+import eakerzt.jiv.api.gui.handlers.IGuiProperties;
+import eakerzt.jiv.common.input.IInternalKeyMappings;
+import eakerzt.jiv.common.input.IUserInputHandler;
+import eakerzt.jiv.common.input.UserInput;
+import net.minecraft.client.gui.screens.Screen;
+
+import java.util.Optional;
+
+public class NullInputHandler implements IUserInputHandler {
+	public static final NullInputHandler INSTANCE = new NullInputHandler();
+
+	private NullInputHandler() {
+
+	}
+
+	@Override
+	public Optional<IUserInputHandler> handleUserInput(Screen screen, IGuiProperties guiProperties, UserInput input, IInternalKeyMappings keyBindings) {
+		return Optional.empty();
+	}
+}

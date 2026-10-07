@@ -1,0 +1,10 @@
+/**
+ * Read and update individual config values.
+ * <p>
+ * {@link IConfigValue} is the main runtime interface. Its child packages contain the builders and supporting types used
+ * to declare, serialize, present, and observe values.
+ */
+@NullMarked
+package eakerzt.jiv.config.api.value;
+
+import org.jspecify.annotations.NullMarked;

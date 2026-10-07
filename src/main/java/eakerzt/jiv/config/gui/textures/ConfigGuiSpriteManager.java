@@ -1,0 +1,132 @@
+package eakerzt.jiv.config.gui.textures;
+
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.metadata.gui.GuiMetadataSection;
+import net.minecraft.client.resources.metadata.gui.GuiSpriteScaling;
+import net.minecraft.client.renderer.texture.SpriteLoader;
+import net.minecraft.client.renderer.texture.TextureAtlas;
+import net.minecraft.client.renderer.texture.TextureManager;
+import net.minecraft.resources.Identifier;
+import net.minecraft.server.packs.metadata.MetadataSectionType;
+import net.minecraft.server.packs.resources.PreparableReloadListener;
+import net.minecraft.server.packs.resources.ResourceManager;
+import org.jspecify.annotations.Nullable;
+
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+
+/** Atlas reload protocol adapted from JIV (MIT). */
+public class ConfigGuiSpriteManager implements PreparableReloadListener, AutoCloseable {
+	public static final PreparableReloadListener.StateKey<PendingStitchResults> PENDING_STITCH = new PreparableReloadListener.StateKey<>();
+	private final AtlasEntry atlasEntry;
+
+	static final String TEXTURE_NAMESPACE = "jiv_config";
+	public ConfigGuiSpriteManager(TextureManager textureManager) {
+		this(textureManager, new Config(
+			Identifier.fromNamespaceAndPath(TEXTURE_NAMESPACE, "textures/atlas/gui.png"),
+			Identifier.fromNamespaceAndPath(TEXTURE_NAMESPACE, "gui"),
+			Set.of(GuiMetadataSection.TYPE)
+		));
+	}
+	public TextureAtlasSprite getSprite(Identifier location) {
+		return getAtlas().getSprite(location);
+	}
+	public GuiSpriteScaling getSpriteScaling(TextureAtlasSprite sprite) {
+		return sprite.contents().getAdditionalMetadata(GuiMetadataSection.TYPE)
+			.orElse(GuiMetadataSection.DEFAULT).scaling();
+	}
+	private ConfigGuiSpriteManager(TextureManager textureManager, Config config) {
+		TextureAtlas atlas = new TextureAtlas(config.textureId);
+		textureManager.register(config.textureId, atlas);
+		this.atlasEntry = new AtlasEntry(atlas, config);
+	}
+
+	public TextureAtlas getAtlas() {
+		return atlasEntry.atlas;
+	}
+
+	@Override
+	public void close() {
+		this.atlasEntry.close();
+	}
+
+	@Override
+	public void prepareSharedState(PreparableReloadListener.SharedState state) {
+		CompletableFuture<SpriteLoader.Preparations> preparations = new CompletableFuture<>();
+		PendingStitch pendingStitch = new PendingStitch(atlasEntry, preparations);
+		CompletableFuture<?> readyToUpload = preparations.thenCompose(SpriteLoader.Preparations::readyForUpload);
+
+		state.set(PENDING_STITCH, new PendingStitchResults(pendingStitch, readyToUpload));
+	}
+
+	@Override
+	public CompletableFuture<Void> reload(
+		PreparableReloadListener.SharedState state,
+		Executor loadAndStitchExecutor,
+		PreparableReloadListener.PreparationBarrier preparationBarrier,
+		Executor joinAndUploadExecutor
+	) {
+		PendingStitchResults pendingStitchResults = state.get(PENDING_STITCH);
+		ResourceManager resourcemanager = state.resourceManager();
+
+		PendingStitch pendingStitch = pendingStitchResults.pendingStitch;
+		pendingStitch.entry.scheduleLoad(resourcemanager, loadAndStitchExecutor)
+			.whenComplete((SpriteLoader.@Nullable Preparations preparations, @Nullable Throwable throwable) -> {
+				if (preparations != null) {
+					pendingStitch.preparations.complete(preparations);
+				} else if (throwable != null) {
+					pendingStitch.preparations.completeExceptionally(throwable);
+				} else {
+					pendingStitch.preparations.completeExceptionally(
+						new IllegalStateException("Sprite loading completed without a result.")
+					);
+				}
+			});
+		return pendingStitchResults.readyToUpload
+			.thenCompose(preparationBarrier::wait)
+			.thenAcceptAsync(ignored -> pendingStitchResults.joinAndUpload(), joinAndUploadExecutor);
+	}
+
+	public record Config(
+		Identifier textureId,
+		Identifier definitionLocation,
+		Set<MetadataSectionType<?>> additionalMetadata
+	) {}
+
+	record AtlasEntry(TextureAtlas atlas, Config config) implements AutoCloseable {
+		@Override
+		public void close() {
+			this.atlas.clearTextureData();
+		}
+
+		CompletableFuture<SpriteLoader.Preparations> scheduleLoad(ResourceManager resourceManager, Executor executor) {
+			return SpriteLoader.create(this.atlas)
+				.loadAndStitch(resourceManager, this.config.definitionLocation, 0, executor, this.config.additionalMetadata);
+		}
+	}
+
+	record PendingStitch(AtlasEntry entry, CompletableFuture<SpriteLoader.Preparations> preparations) {
+		public void joinAndUpload() {
+			SpriteLoader.Preparations preparations = this.preparations.join();
+			this.entry.atlas.upload(preparations);
+		}
+	}
+
+	public static class PendingStitchResults {
+		private final PendingStitch pendingStitch;
+		private final CompletableFuture<?> readyToUpload;
+
+		PendingStitchResults(
+			PendingStitch pendingStitch,
+			CompletableFuture<?> readyToUpload
+		) {
+			this.pendingStitch = pendingStitch;
+			this.readyToUpload = readyToUpload;
+		}
+
+		public void joinAndUpload() {
+			pendingStitch.joinAndUpload();
+		}
+	}
+}

@@ -1,0 +1,57 @@
+package eakerzt.jiv.gui.overlay.bookmarks.history;
+
+import eakerzt.jiv.api.gui.builder.ITooltipBuilder;
+import eakerzt.jiv.api.gui.drawable.IDrawable;
+import eakerzt.jiv.api.gui.inputs.IJivUserInput;
+import eakerzt.jiv.common.Internal;
+import eakerzt.jiv.common.config.IClientConfig;
+import eakerzt.jiv.common.gui.textures.Textures;
+import eakerzt.jiv.api.gui.buttons.IButtonState;
+import eakerzt.jiv.api.gui.buttons.IIconButtonController;
+import net.minecraft.ChatFormatting;
+import net.minecraft.network.chat.Component;
+
+public class LookupHistoryButtonController implements IIconButtonController {
+	private final IDrawable offIcon;
+	private final IDrawable onIcon;
+	private final IClientConfig clientConfig;
+
+	public LookupHistoryButtonController(IClientConfig clientConfig) {
+		Textures textures = Internal.getTextures();
+		this.offIcon = textures.getHistoryButtonDisabledIcon();
+		this.onIcon = textures.getHistoryButtonEnabledIcon();
+		this.clientConfig = clientConfig;
+	}
+
+	@Override
+	public void getTooltips(ITooltipBuilder tooltip) {
+		if (clientConfig.lookupHistoryEnabled().get()) {
+			tooltip.add(Component.translatable("jiv.tooltip.lookupHistory.disable"));
+		} else {
+			tooltip.add(Component.translatable("jiv.tooltip.lookupHistory.enable"));
+		}
+		tooltip.add(
+			Component.translatable("jiv.tooltip.lookupHistory.usage")
+				.withStyle(ChatFormatting.ITALIC)
+				.withStyle(ChatFormatting.GRAY)
+		);
+	}
+
+	@Override
+	public void updateState(IButtonState state) {
+		state.setForcePressed(clientConfig.lookupHistoryEnabled().get());
+		if (clientConfig.lookupHistoryEnabled().get()) {
+			state.setIcon(onIcon);
+		} else {
+			state.setIcon(offIcon);
+		}
+	}
+
+	@Override
+	public boolean onPress(IJivUserInput input) {
+		if (!input.isSimulate()) {
+			clientConfig.lookupHistoryEnabled().set(!clientConfig.lookupHistoryEnabled().get());
+		}
+		return true;
+	}
+}

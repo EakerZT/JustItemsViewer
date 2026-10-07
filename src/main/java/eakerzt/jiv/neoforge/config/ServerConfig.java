@@ -1,0 +1,60 @@
+package eakerzt.jiv.neoforge.config;
+
+import eakerzt.jiv.common.config.IServerConfig;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.ModLoadingContext;
+import net.neoforged.fml.config.ModConfig;
+import net.neoforged.neoforge.common.ModConfigSpec;
+
+import java.util.function.Supplier;
+
+public final class ServerConfig implements IServerConfig {
+	private static final String TRANSLATION_KEY_PREFIX = "jiv.configuration.server.";
+
+	// Forge config
+	private final Supplier<Boolean> enableCheatModeForOp;
+	private final Supplier<Boolean> enableCheatModeForCreative;
+	private final Supplier<Boolean> enableCheatModeForGive;
+
+	public static IServerConfig register(ModLoadingContext modLoadingContext) {
+		ModConfigSpec.Builder builder = new ModConfigSpec.Builder();
+		ServerConfig instance = new ServerConfig(builder);
+		ModConfigSpec config = builder.build();
+		ModContainer activeContainer = modLoadingContext.getActiveContainer();
+		activeContainer.registerConfig(ModConfig.Type.SERVER, config);
+		return instance;
+	}
+
+	private ServerConfig(ModConfigSpec.Builder builder) {
+		builder.push("cheat mode");
+		{
+			builder.comment("Enable the cheat mode for players who have an operator status (/op).")
+				.translation(TRANSLATION_KEY_PREFIX + "enableCheatModeForOp");
+			enableCheatModeForOp = builder.define("enableCheatModeForOp", true);
+
+			builder.comment("Enable the cheat mode for players who are in the creative mode.")
+				.translation(TRANSLATION_KEY_PREFIX + "enableCheatModeForCreative");
+			enableCheatModeForCreative = builder.define("enableCheatModeForCreative", true);
+
+			builder.comment("Enable the cheat mode for players who can use the \"/give\" command.")
+				.translation(TRANSLATION_KEY_PREFIX + "enableCheatModeForGive");
+			enableCheatModeForGive = builder.define("enableCheatModeForGive", false);
+		}
+		builder.pop();
+	}
+
+	@Override
+	public boolean isCheatModeEnabledForOp() {
+		return enableCheatModeForOp.get();
+	}
+
+	@Override
+	public boolean isCheatModeEnabledForCreative() {
+		return enableCheatModeForCreative.get();
+	}
+
+	@Override
+	public boolean isCheatModeEnabledForGive() {
+		return enableCheatModeForGive.get();
+	}
+}
