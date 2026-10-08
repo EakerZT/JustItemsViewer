@@ -259,9 +259,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 			IElement<T> element, UserInput input, BookmarkOverlay bookmarkOverlay) {
 		if (bookmarkOverlay.isBookmarkElementUnderMouse(
 				element, input.getMouseX(), input.getMouseY())) {
-			var ingredientBookmark =
-					element.getBookmark().filter(IngredientBookmark.class::isInstance);
-			if (ingredientBookmark.isPresent()) return remove(ingredientBookmark.get());
+			return removeElement(element);
 		}
 
 		ITypedIngredient<T> ingredient = element.getTypedIngredient();
@@ -277,10 +275,45 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	}
 
 	public void toggleBookmark(IBookmark bookmark) {
-		if (remove(bookmark)) {
-			return;
-		}
-		add(bookmark);
+		toggleInGroup(bookmark, 0, bookmark instanceof RecipeBookmark<?, ?> ? 1 : 0);
+	}
+
+	private boolean matchesCollection(IBookmark a, IBookmark b) {
+		return a instanceof RecipeBookmark<?, ?> recipe && b instanceof RecipeBookmark<?, ?> other
+				? recipe.sameRecipe(other) : a.equals(b);
+	}
+
+	public boolean containsUngrouped(IBookmark bookmark) {
+		return bookmarksList.stream().anyMatch(b -> state(b).group == 0 && matchesCollection(b, bookmark));
+	}
+
+	public boolean removeElement(IElement<?> element) {
+		IBookmark owner = element.getBookmark().orElse(null);
+		if (owner == null || identityIndex(owner) < 0) return false;
+		if (!(element instanceof BookmarkCell<?> cell) || !(owner instanceof RecipeBookmark<?, ?>))
+			return remove(owner);
+		BookmarkRecipeData data = data(owner).orElse(null);
+		if (data == null) return false;
+		BookmarkState state = state(owner);
+		var display = data.displaySlots(state, ingredientManager).stream()
+				.filter(slot -> slot.slot().index() == cell.slot).findFirst();
+		if (display.isEmpty()) return false;
+		display.get().sources().forEach(slot -> state.removedSlots.add(slot.index()));
+		if (cell.role == RecipeIngredientRole.OUTPUT && data.slots().stream()
+				.noneMatch(slot -> slot.role() == RecipeIngredientRole.OUTPUT && !state.removedSlots.contains(slot.index())))
+			return remove(owner);
+		changed();
+		return true;
+	}
+
+	public void removeNamespace() {
+		finishDrag(false);
+		pages.remove(namespace);
+		if (pages.isEmpty()) pages.add(new BookmarkPage());
+		namespace = Math.min(namespace, pages.size() - 1);
+		bookmarksList = page().bookmarks;
+		recipeData.clear();
+		changed();
 	}
 
 	public boolean remove(IBookmark ingredient) {
@@ -290,9 +323,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 						.findFirst()
 						.orElseGet(() -> find(ingredient, 0));
 		if (existing == null) return false;
-		bookmarksList.remove(identityIndex(existing));
-		page().states.remove(existing);
-		recipeData.remove(existing);
+		discard(existing);
 		notifyListenersOfChange();
 		save();
 		return true;
@@ -493,9 +524,11 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	}
 
 	public void toggleInGroup(IBookmark bookmark, int group, long multiplier) {
-		IBookmark existing = find(bookmark, group);
-		if (existing != null) {
-			remove(existing);
+		var existing = bookmarksList.stream()
+				.filter(b -> state(b).group == group && matchesCollection(b, bookmark)).toList();
+		if (!existing.isEmpty()) {
+			for (IBookmark entry : existing) discard(entry);
+			changed();
 			return;
 		}
 		BookmarkState state = state(bookmark);
@@ -554,8 +587,16 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		if (!targets.isEmpty()) moveGroupRelative(group, targets.getFirst(), false);
 	}
 
+	private void discard(IBookmark bookmark) {
+		int group = state(bookmark).group;
+		bookmarksList.remove(identityIndex(bookmark));
+		page().states.remove(bookmark);
+		recipeData.remove(bookmark);
+		if (group != 0 && getGroupBookmarks(group).isEmpty()) page().groups.remove(group);
+	}
+
 	public void removeGroup(int group) {
-		bookmarksList.removeIf(b -> state(b).group == group);
+		for (IBookmark bookmark : getGroupBookmarks(group)) discard(bookmark);
 		if (group != 0) page().groups.remove(group);
 		changed();
 	}
@@ -589,6 +630,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		for (IBookmark bookmark : bookmarksList)
 			if (state(bookmark).group == group && recipeData.containsKey(bookmark))
 				for (var slot : recipeData.get(bookmark).slots()) {
+					if (state(bookmark).removedSlots.contains(slot.index())) continue;
 					var ingredient = slot.selected(state(bookmark));
 					values.put(BookmarkRecipeData.key(ingredient, ingredientManager), ingredient);
 				}

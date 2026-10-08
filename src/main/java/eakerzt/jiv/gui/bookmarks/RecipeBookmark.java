@@ -223,6 +223,11 @@ public class RecipeBookmark<R, I> implements IBookmark {
 		this.visible = visible;
 	}
 
+	public boolean sameRecipe(RecipeBookmark<?, ?> other) {
+		return recipeUid.equals(other.recipeUid)
+				&& recipeCategory.getRecipeType().equals(other.recipeCategory.getRecipeType());
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(recipeUid, recipeCategory.getRecipeType(), outputSlot, outputChoice);

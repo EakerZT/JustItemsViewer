@@ -133,7 +133,7 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 			IElement<?> pageAnchorElement = getPageAnchorElement();
 			updateBounds(this.availableArea, this.guiExclusionAreas, this.mouseExclusionPoint);
 			if (keepPositionOnRelayout) this.controller.updateLayoutKeepingPosition();
-            else this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
+            else this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement, workspaceNavigation);
         }
     }
 
@@ -150,7 +150,8 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 
 	@Override
 	public void updateLayoutKeepingPageAnchorVisible(@Nullable IElement<?> pageAnchorElement) {
-		this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
+		if (keepPositionOnRelayout) this.controller.updateLayoutKeepingPosition();
+		else this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement, workspaceNavigation);
 	}
 
 	public void setPageAnchorElement(IElement<?> pageAnchorElement) {

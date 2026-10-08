@@ -62,6 +62,7 @@ public record BookmarkRecipeData(List<Slot> slots) {
 			ToLongFunction<ITypedIngredient<?>> quantity) {
 		var merged = new LinkedHashMap<DisplayKey, DisplaySlot>();
 		for (Slot slot : orderedSlots(state)) {
+			if (state.removedSlots.contains(slot.index())) continue;
 			if (slot.role() != RecipeIngredientRole.INPUT
 					&& slot.role() != RecipeIngredientRole.OUTPUT) continue;
 			var ingredient = slot.selected(state);
@@ -223,6 +224,7 @@ public record BookmarkRecipeData(List<Slot> slots) {
 			IBookmark bookmark, BookmarkState state, IIngredientManager manager) {
 		List<RecipeChain.Material> inputs = new ArrayList<>(), outputs = new ArrayList<>();
 		for (Slot slot : slots) {
+			if (state.removedSlots.contains(slot.index())) continue;
 			ITypedIngredient<?> ingredient = slot.selected(state);
 			long amount = amount(ingredient, manager);
 			if (slot.role() == RecipeIngredientRole.INPUT)

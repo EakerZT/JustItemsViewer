@@ -51,6 +51,7 @@ class BookmarkWorkspaceJsonTest {
 		first.state(b).choices.put(2, 3);
 		first.state(b).inputOrder.addAll(List.of(4, 1, 2));
 		first.state(b).collapsed = true;
+		first.state(b).removedSlots.addAll(List.of(0, 3));
 		second.bookmarks.add(new FakeBookmark("copper"));
 		var workspace =
 				BookmarkWorkspaceJson.decode(
@@ -67,6 +68,7 @@ class BookmarkWorkspaceJsonTest {
 		assertEquals(MapHolder.CHOICES, page.state(page.bookmarks.get(1)).choices);
 		assertEquals(List.of(4, 1, 2), page.state(page.bookmarks.get(1)).inputOrder);
 		assertTrue(page.state(page.bookmarks.get(1)).collapsed);
+		assertEquals(java.util.Set.of(0, 3), page.state(page.bookmarks.get(1)).removedSlots);
 		assertTrue(page.groups.get(1).linked);
 		assertTrue(page.groups.get(1).todo);
 		assertTrue(page.groups.get(1).collapsed);

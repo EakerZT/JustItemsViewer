@@ -60,11 +60,13 @@ Search uses your current game language. You can also enable item ID, creative ta
 
 ## Bookmark Controls
 
-Hover over a slot before using a bookmark shortcut. `A` below means the configured **Bookmark** key, whose default is A. Repeating the same shortcut removes that record; item bookmarks, single-output recipe bookmarks, and all-output recipe bookmarks are independent.
+Hover over a slot before using a bookmark shortcut. `A` below means the configured **Bookmark** key, whose default is A. Outside the bookmark panel, toggles search all ungrouped records in the current bookmark space, across content pages. Grouped records are independent. Recipe matching ignores output selection and removed materials; an existing recipe is removed in all matching ungrouped records, otherwise it is added. Item/fluid toggles match independent ingredient bookmarks only.
 
 | Location / Action | Default Operation |
 | --- | --- |
-| Any ingredient slot: add/remove the item or fluid only, including recipe outputs | `A` |
+| Bookmark panel: remove the hovered item/fluid cell, including recipe inputs and outputs | `A` without modifiers |
+| Recipe-screen output: toggle the recipe, recording only the hovered output when adding | `A` |
+| Other locations: toggle an independent item/fluid bookmark | `A` |
 | Recipe slot or recipe bookmark: add/remove a recipe with the hovered output only; over an input, select the recipe's first output | `Ctrl + A` |
 | Recipe slot or recipe bookmark: add/remove a recipe with every output | `Ctrl + Shift + A` |
 | Recipe screen bookmark button | Add/remove the complete recipe |
@@ -82,7 +84,7 @@ Hover over a slot before using a bookmark shortcut. `A` below means the configur
 
 `Ctrl + A` retains text selection when a search/text field has keyboard focus. With the mouse over an ordinary inventory/item-list slot, the recipe shortcuts do not choose an arbitrary recipe.
 
-A single-output recipe records only that output for display **and calculation**. Other outputs do not supply a linked recipe or appear as leftovers. Use `Ctrl + Shift + A` when those outputs should participate. All input requirements remain intact. The full recipe is still available when opening the bookmark or transferring its ingredients.
+A single-output recipe records only that output for display **and calculation**. Other outputs do not supply a linked recipe or appear as leftovers. Use `Ctrl + Shift + A` when those outputs should participate. Removing a bookmarked input excludes it from material calculations and transfer. Merged cells remove every source slot; replaceable inputs remove the entire requirement. Removing the last recorded output deletes the recipe and its remaining inputs. Opening the recipe still shows the original full recipe.
 
 Drag a recipe to the space below the final subgroup (or the bottom edge of its last row) to place it after the subgroup in the default group. Default-group recipes can appear before, between, or after subgroups. `Ctrl + Left-drag` a subgroup bracket moves all its bookmarks as one block, with live placeholders; release confirms and cancellation restores its position. Group settings and internal order are retained.
 
@@ -114,7 +116,8 @@ The seven-pixel gutter to the left of the slots controls subgroups within the cu
 | Gutter: left-drag over rows | Create a subgroup or add rows to the starting subgroup |
 | Gutter: right-drag over rows | Remove the selected rows from their subgroup |
 | Group bracket: `Ctrl + Left-drag` | Move the subgroup |
-| Group bracket or center counter: `Shift + A` without Ctrl/Alt | Delete that subgroup and its bookmarks |
+| Group bracket: `A` without modifiers | Delete that group and its bookmarks |
+| Top center title/counter: `A` without modifiers | Delete the current bookmark space, including groups; switch to an adjacent space and always retain at least one empty space |
 | Group bracket or center counter: Show Recipes key (default `R`) | Open the crafting tree; follows the configured recipe key |
 | Group bracket or center counter: `V` / `Shift + V` | Pull required materials / only missing materials from a supported container |
 

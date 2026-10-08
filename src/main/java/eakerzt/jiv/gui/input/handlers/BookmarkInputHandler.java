@@ -66,6 +66,11 @@ public class BookmarkInputHandler implements IUserInputHandler {
 		if (action == Action.NONE) return Optional.empty();
 		if (action != Action.INGREDIENT)
 			return handleRecipeBookmark(input, keys, action == Action.ALL_OUTPUTS);
+		var layout = recipesGui.getRecipeLayoutUnderMouse(input.getMouseX(), input.getMouseY());
+		if (layout.isPresent() && layout.get().getRecipeLayout()
+				.getSlotUnderMouse(input.getMouseX(), input.getMouseY())
+				.filter(slot -> slot.slot().getRole() == RecipeIngredientRole.OUTPUT).isPresent())
+			return handleRecipeBookmark(input, keys, false);
 		return focusSource
 				.getIngredientUnderMouse(input, keys)
 				.findFirst()
@@ -88,7 +93,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 			if (selected == null) return Optional.empty();
 			if (!input.isSimulate())
 				bookmarkList.toggleInGroup(
-						selected, bookmarkList.state(source.bookmark()).group, 1);
+						selected, 0, 1);
 			return Optional.of(new SameElementInputHandler(this, preview::isMouseOver));
 		}
 		// A hovered bookmark material retains its owning recipe, including input slots.
@@ -101,7 +106,7 @@ public class BookmarkInputHandler implements IUserInputHandler {
 				var selected = selectBookmark((RecipeBookmark<?, ?>) owner.get(), slot, all);
 				if (selected == null) return Optional.empty();
 				if (!input.isSimulate())
-					bookmarkList.toggleInGroup(selected, bookmarkList.state(owner.get()).group, 1);
+					bookmarkList.toggleInGroup(selected, 0, 1);
 				return Optional.of(new SameElementInputHandler(this, clicked.get()::isMouseOver));
 			}
 		}

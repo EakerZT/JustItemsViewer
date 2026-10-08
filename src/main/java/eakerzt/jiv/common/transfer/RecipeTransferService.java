@@ -33,7 +33,7 @@ public final class RecipeTransferService {
 		Player player,
 		boolean maxTransfer
 	) {
-		return transferRecipe(screen, recipeLayout, player, maxTransfer, true)
+		return transferRecipe(screen, recipeLayout, player, maxTransfer, true, recipeLayout.getRecipeSlotsView())
 			.map(error -> error.getType().allowsTransfer)
 			.orElse(true);
 	}
@@ -43,7 +43,20 @@ public final class RecipeTransferService {
 		IRecipeLayoutDrawable<?> recipeLayout,
 		Player player
 	) {
-		return transferRecipe(screen, recipeLayout, player, false, false);
+		return transferRecipe(screen, recipeLayout, player, false, false, recipeLayout.getRecipeSlotsView());
+	}
+
+	public <C extends AbstractContainerMenu> boolean transferRecipe(
+			AbstractContainerScreen<C> screen, IRecipeLayoutDrawable<?> layout, Player player,
+			boolean maxTransfer, IRecipeSlotsView slots) {
+		return transferRecipe(screen, layout, player, maxTransfer, true, slots)
+				.map(error -> error.getType().allowsTransfer).orElse(true);
+	}
+
+	public <C extends AbstractContainerMenu> Optional<IRecipeTransferError> getTransferRecipeError(
+			AbstractContainerScreen<C> screen, IRecipeLayoutDrawable<?> layout, Player player,
+			IRecipeSlotsView slots) {
+		return transferRecipe(screen, layout, player, false, false, slots);
 	}
 
 	public <C extends AbstractContainerMenu, R> boolean hasRecipeTransferHandler(
@@ -58,7 +71,8 @@ public final class RecipeTransferService {
 		IRecipeLayoutDrawable<R> recipeLayout,
 		Player player,
 		boolean maxTransfer,
-		boolean doTransfer
+		boolean doTransfer,
+		IRecipeSlotsView recipeSlotsView
 	) {
 		C container = screen.getMenu();
 		IRecipeCategory<R> recipeCategory = recipeLayout.getRecipeCategory();
@@ -72,7 +86,6 @@ public final class RecipeTransferService {
 		}
 
 		IRecipeTransferHandler<C, R> transferHandler = recipeTransferHandler.get();
-		IRecipeSlotsView recipeSlotsView = recipeLayout.getRecipeSlotsView();
 		RecipeTransferContext<R, C> context = new RecipeTransferContext<>(
 			recipeTransferLifecycleManager.getNextTransferId(),
 			recipeLayout.getRecipe(),

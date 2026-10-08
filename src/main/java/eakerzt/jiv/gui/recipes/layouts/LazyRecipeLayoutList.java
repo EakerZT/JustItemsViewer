@@ -83,7 +83,7 @@ public class LazyRecipeLayoutList<T> implements IRecipeLayoutList {
 				RecipeBookmark<T, ?> recipeBookmark = bookmarkList.getMatchingBookmark(recipeType, recipe);
 				if (recipeBookmark != null) {
 					IRecipeLayoutDrawable<T> recipeLayout = recipeManager.createRecipeLayoutDrawableOrShowError(recipeCategory, recipe, focusGroup);
-					IRecipeLayoutWithButtons<T> recipeLayoutWithButtons = RecipeLayoutWithButtons.create(recipeLayout, recipeBookmark, bookmarkList, recipesGui, recipeTransferService, recipeButtonControllerFactories);
+					IRecipeLayoutWithButtons<T> recipeLayoutWithButtons = RecipeLayoutWithButtons.create(recipeLayout, recipeBookmark.withOutputSelection(-1, 0, recipeBookmark.getDisplayIngredient()), bookmarkList, recipesGui, recipeTransferService, recipeButtonControllerFactories);
 					results.add(recipeLayoutWithButtons);
 					iterator.remove();
 				}

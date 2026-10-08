@@ -276,6 +276,61 @@ class RecipeBookmarkSelectionTest {
 				.toList();
 	}
 
+	private BookmarkList bookmarkList() {
+		return new BookmarkList(recipes, proxy(IFocusFactory.class, (method, args) -> null),
+				ingredients, RegistryAccess.EMPTY,
+				proxy(eakerzt.jiv.gui.config.IBookmarkConfig.class, (method, args) -> null),
+				new TestClientConfig(false), null, codecs, null, null);
+	}
+
+	@Test void recipeToggleIgnoresOutputSelectionAndRemovedMaterials() {
+		var list = bookmarkList();
+		var single = base().withOutputSelection(2, 0, BYPRODUCT);
+		var all = base();
+		var grouped = base();
+		list.page().bookmarks.addAll(List.of(single, all, grouped));
+		list.state(grouped).group = 1;
+		list.state(single).removedSlots.add(0);
+		assertTrue(list.containsUngrouped(base()));
+		list.toggleBookmark(base());
+		assertEquals(1, list.page().bookmarks.size());
+		assertSame(grouped, list.page().bookmarks.getFirst());
+		assertFalse(list.containsUngrouped(base()));
+		list.toggleBookmark(base());
+		assertEquals(2, list.page().bookmarks.size());
+	}
+
+	@Test void deletingMergedInputExcludesEverySourceAndLastOutputRemovesRecipe() {
+		slots = () -> List.of(
+				slot(RecipeIngredientRole.INPUT, TypedIngredient.createUnvalidated(TYPE, "ore")),
+				slot(RecipeIngredientRole.INPUT, TypedIngredient.createUnvalidated(TYPE, "ore")),
+				slot(RecipeIngredientRole.OUTPUT, MAIN),
+				slot(RecipeIngredientRole.OUTPUT, BYPRODUCT));
+		var list = bookmarkList();
+		var recipe = base();
+		list.toggleBookmark(recipe);
+		list.page().groups.get(0).todo = true;
+		list.setLayoutColumns(4);
+		var input = list.getElements().stream().filter(e -> e instanceof BookmarkCell<?> cell
+				&& cell.role == RecipeIngredientRole.INPUT).findFirst().orElseThrow();
+		assertTrue(list.removeElement(input));
+		assertEquals(Set.of(0, 1), list.state(recipe).removedSlots);
+		assertTrue(list.calculation(0).orElseThrow().inputs().isEmpty());
+		assertTrue(list.getElements().stream().noneMatch(e -> e instanceof BookmarkCell<?> cell
+				&& cell.role == RecipeIngredientRole.INPUT));
+		var transfer = new BookmarkTransferSlots(slots, list.state(recipe).removedSlots);
+		assertEquals(4, transfer.getSlotViews().size());
+		assertTrue(transfer.getSlotViews().get(0).isEmpty());
+		assertTrue(transfer.getSlotViews().get(1).isEmpty());
+		assertEquals(RecipeIngredientRole.OUTPUT, transfer.getSlotViews().get(2).getRole());
+		var output = list.getElements().stream().filter(e -> !e.isEmptySlot()).findFirst().orElseThrow();
+		assertTrue(list.removeElement(output));
+		assertEquals(1, list.page().bookmarks.size());
+		var last = list.getElements().stream().filter(e -> !e.isEmptySlot()).findFirst().orElseThrow();
+		assertTrue(list.removeElement(last));
+		assertTrue(list.page().bookmarks.isEmpty());
+	}
+
 	private RecipeBookmark<String, String> base() {
 		return new RecipeBookmark<>(category, "recipe", ID, MAIN, true, null);
 	}

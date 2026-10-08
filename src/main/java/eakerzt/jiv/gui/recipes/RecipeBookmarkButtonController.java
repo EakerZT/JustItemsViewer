@@ -28,7 +28,7 @@ public class RecipeBookmarkButtonController implements IIconButtonController {
 	@Override
 	public void getTooltips(ITooltipBuilder tooltip) {
 		if (recipeBookmark != null) {
-			if (bookmarks.contains(recipeBookmark)) {
+			if (bookmarks.containsUngrouped(recipeBookmark)) {
 				tooltip.add(Component.translatable("jiv.tooltip.bookmarks.recipe.remove"));
 			} else {
 				tooltip.add(Component.translatable("jiv.tooltip.bookmarks.recipe.add"));
@@ -49,7 +49,7 @@ public class RecipeBookmarkButtonController implements IIconButtonController {
 
 	@Override
 	public void updateState(IButtonState state) {
-		bookmarked = recipeBookmark != null && bookmarks.contains(recipeBookmark);
+		bookmarked = recipeBookmark != null && bookmarks.containsUngrouped(recipeBookmark);
 		state.setForcePressed(bookmarked);
 	}
 

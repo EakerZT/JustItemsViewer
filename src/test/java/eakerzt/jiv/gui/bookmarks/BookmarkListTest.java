@@ -13,6 +13,37 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BookmarkListTest {
+	@Test void deletingSpacesRetainsAdjacentContentsAndOneEmptySpace() {
+		BookmarkList list = list();
+		BookmarkPage first = new BookmarkPage(), second = new BookmarkPage();
+		first.bookmarks.add(new FakeBookmark("iron"));
+		second.bookmarks.add(new FakeBookmark("copper"));
+		list.setWorkspace(List.of(first, second), 0);
+		list.removeNamespace();
+		assertSame(second, list.page());
+		assertEquals(0, list.getNamespace());
+		assertEquals(1, list.getPages().size());
+		list.removeNamespace();
+		assertTrue(list.page().bookmarks.isEmpty());
+		assertEquals(1, list.getPages().size());
+	}
+
+	@Test void ungroupedToggleRemovesAllDuplicatesAndPreservesGroupedItems() {
+		BookmarkList list = list();
+		var a = new FakeBookmark("iron");
+		var b = new FakeBookmark("iron");
+		var grouped = new FakeBookmark("iron");
+		list.page().bookmarks.addAll(List.of(a, b, grouped));
+		list.state(grouped).group = 1;
+		list.toggleInGroup(new FakeBookmark("iron"), 0, 0);
+		assertEquals(1, list.page().bookmarks.size());
+		assertSame(grouped, list.page().bookmarks.getFirst());
+		assertFalse(list.containsUngrouped(grouped));
+		list.toggleInGroup(new FakeBookmark("iron"), 0, 0);
+		assertEquals(2, list.page().bookmarks.size());
+		assertTrue(list.containsUngrouped(grouped));
+	}
+
 	@Test void topNavigationSwitchesWorkspacesAndDisplaysBothCounters() {
 		BookmarkList list = list();
 		list.toggleInGroup(new FakeBookmark("iron"), 0, 4);

@@ -417,7 +417,6 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	public IDragHandler createDragHandler() {
 		final IDragHandler lookupHistoryDragHandler = this.lookupHistoryOverlay.createDragHandler();
 		final IDragHandler combinedDragHandlers = new CombinedDragHandler(
-            this.groupController.createDragHandler(),
 			this.bookmarkDragManager.createDragHandler(),
 			this.contents.createDragHandler(),
 			lookupHistoryDragHandler

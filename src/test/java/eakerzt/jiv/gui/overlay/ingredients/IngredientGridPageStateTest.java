@@ -25,6 +25,16 @@ public class IngredientGridPageStateTest {
 	private static final IIngredientType<String> STRING_TYPE = () -> String.class;
 
 	@Test
+	void bookmarkDeletionClampsMissingAnchorToLastRemainingPage() {
+		var state = new IngredientGridPageState();
+		assertEquals(20, state.updateForPageNavigation(20, 30, 10));
+		var gaps = java.util.Collections.<IElement<?>>nCopies(15,
+				eakerzt.jiv.gui.bookmarks.BookmarkCell.gap(0));
+		assertEquals(10, state.updateKeepingPageAnchorVisible(null, gaps, 10, true));
+		assertEquals(0, state.updateKeepingPageAnchorVisible(null, List.of(), 10, true));
+	}
+
+	@Test
 	public void recipeUsesAnchorSkipsBookmarkGapsAfterRelayout() {
 		Object ingredient = new Object();
 		IElement<?> anchor = new IngredientElement<>(new TestTypedIngredient<>(OBJECT_TYPE, ingredient));

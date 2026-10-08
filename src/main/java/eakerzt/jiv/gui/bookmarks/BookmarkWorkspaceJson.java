@@ -53,6 +53,9 @@ public final class BookmarkWorkspaceJson {
 				JsonArray inputOrder = new JsonArray();
 				state.inputOrder.forEach(inputOrder::add);
 				entry.add("inputOrder", inputOrder);
+				JsonArray removedSlots = new JsonArray();
+				state.removedSlots.stream().sorted().forEach(removedSlots::add);
+				entry.add("removedSlots", removedSlots);
 				entries.add(entry);
 			}
 			page.unresolved.forEach(entry -> entries.add(entry.deepCopy()));
@@ -127,6 +130,13 @@ public final class BookmarkWorkspaceJson {
 										throw new JsonParseException("Invalid slot choice");
 									state.choices.put(slot, choice);
 								});
+			if (entry.has("removedSlots")) {
+				for (JsonElement removed : entry.getAsJsonArray("removedSlots")) {
+					int index = removed.getAsInt();
+					if (index < 0) throw new JsonParseException("Invalid removed slot");
+					state.removedSlots.add(index);
+				}
+			}
 			if (entry.has("inputOrder")) {
 				for (JsonElement input : entry.getAsJsonArray("inputOrder")) {
 					int index = input.getAsInt();

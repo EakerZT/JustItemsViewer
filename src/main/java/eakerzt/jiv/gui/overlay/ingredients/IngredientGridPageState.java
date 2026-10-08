@@ -31,7 +31,13 @@ final class IngredientGridPageState {
 	}
 
 	public int updateKeepingPageAnchorVisible(@Nullable IElement<?> pageAnchorElement, List<IElement<?>> ingredientList, int itemsPerPage) {
+		return updateKeepingPageAnchorVisible(pageAnchorElement, ingredientList, itemsPerPage, false);
+	}
+
+	public int updateKeepingPageAnchorVisible(@Nullable IElement<?> pageAnchorElement,
+			List<IElement<?>> ingredientList, int itemsPerPage, boolean keepPositionWhenMissing) {
 		int anchorIndex = findIndexOfIngredientElement(pageAnchorElement, ingredientList);
+		if (anchorIndex < 0 && keepPositionWhenMissing) anchorIndex = firstItemIndex;
 		this.firstItemIndex = getFirstItemIndexForValidPage(anchorIndex, ingredientList.size(), itemsPerPage);
 		return this.firstItemIndex;
 	}

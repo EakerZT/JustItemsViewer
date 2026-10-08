@@ -29,6 +29,9 @@ import eakerzt.jiv.common.input.keys.IJivKeyMappingInternal;
 import eakerzt.jiv.common.transfer.RecipeTransferService;
 import eakerzt.jiv.common.util.SafeIngredientUtil;
 import eakerzt.jiv.gui.bookmarks.IBookmark;
+import eakerzt.jiv.gui.bookmarks.BookmarkList;
+import eakerzt.jiv.gui.bookmarks.BookmarkTransferSlots;
+import eakerzt.jiv.api.gui.ingredient.IRecipeSlotsView;
 import eakerzt.jiv.gui.bookmarks.RecipeBookmark;
 import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientGridTooltipHelper;
@@ -100,10 +103,10 @@ public class RecipeBookmarkElement<R, I> implements IElement<I> {
 				}
 
 				if (input.isSimulate()) {
-					IRecipeTransferError recipeTransferError = recipeTransferService.getTransferRecipeError(containerScreen, recipeLayout, player).orElse(null);
+					IRecipeTransferError recipeTransferError = recipeTransferService.getTransferRecipeError(containerScreen, recipeLayout, player, transferSlots(recipeLayout)).orElse(null);
 					return recipeTransferError == null || recipeTransferError.getType().allowsTransfer;
 				} else {
-					return recipeTransferService.transferRecipe(containerScreen, recipeLayout, player, transferMax);
+					return recipeTransferService.transferRecipe(containerScreen, recipeLayout, player, transferMax, transferSlots(recipeLayout));
 				}
 			}
 		}
@@ -313,7 +316,7 @@ public class RecipeBookmarkElement<R, I> implements IElement<I> {
 		if (player != null && screen instanceof AbstractContainerScreen<?> containerScreen) {
 			IRecipeTransferError recipeTransferError = getRecipeLayoutDrawable()
 				.flatMap(recipeLayout -> {
-					return recipeTransferService.getTransferRecipeError(containerScreen, recipeLayout, player);
+					return recipeTransferService.getTransferRecipeError(containerScreen, recipeLayout, player, transferSlots(recipeLayout));
 				})
 				.orElse(null);
 
@@ -337,6 +340,15 @@ public class RecipeBookmarkElement<R, I> implements IElement<I> {
 			}
 		}
 		return results;
+	}
+
+	private IRecipeSlotsView transferSlots(IRecipeLayoutDrawable<R> layout) {
+		var manager = Internal.getJivRuntime().getBookmarkManager();
+		if (manager instanceof BookmarkList bookmarks
+				&& bookmarks.page().bookmarks.stream().anyMatch(b -> b == recipeBookmark))
+			return new BookmarkTransferSlots(
+					layout.getRecipeSlotsView(), bookmarks.state(recipeBookmark).removedSlots);
+		return layout.getRecipeSlotsView();
 	}
 
 	private Optional<IRecipeLayoutDrawable<R>> getRecipeLayoutDrawable() {
