@@ -15,5 +15,11 @@ import java.util.List;
 public interface IBookmarkConfig {
 	void saveBookmarks(IRecipeManager recipeManager, IFocusFactory focusFactory, IGuiHelper guiHelper, IIngredientManager ingredientManager, RegistryAccess registryAccess, ICodecHelper codecHelper, List<IBookmark> bookmarks, Codec<IBookmark> bookmarkCodec);
 
+    default void saveWorkspace(IRecipeManager recipeManager, IFocusFactory focusFactory, IGuiHelper guiHelper,
+        IIngredientManager ingredientManager, RegistryAccess registryAccess, ICodecHelper codecHelper,
+        List<eakerzt.jiv.gui.bookmarks.BookmarkPage> pages, int namespace, Codec<IBookmark> codec) {
+        saveBookmarks(recipeManager,focusFactory,guiHelper,ingredientManager,registryAccess,codecHelper,pages.get(namespace).bookmarks,codec);
+    }
+
 	void loadBookmarks(IRecipeManager recipeManager, IFocusFactory focusFactory, IGuiHelper guiHelper, IIngredientManager ingredientManager, RegistryAccess registryAccess, BookmarkList bookmarkList, ICodecHelper codecHelper, Codec<IBookmark> bookmarkCodec);
 }

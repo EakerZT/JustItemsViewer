@@ -20,6 +20,10 @@ import java.util.Optional;
 public interface IElement<T> {
 	ITypedIngredient<T> getTypedIngredient();
 
+	default boolean isDragPlaceholder() { return false; }
+
+	default boolean isEmptySlot() { return false; }
+
 	/**
 	 * @return the bookmark if this element represents an existing bookmark.
 	 */

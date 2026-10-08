@@ -55,6 +55,7 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 	private ImmutablePoint2i mouseExclusionPoint;
 	private boolean active;
 	private boolean layoutDirty;
+	private boolean workspaceNavigation;
 
 	public IngredientGridWithNavigation(
 		String debugName,
@@ -115,7 +116,15 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 		Internal.registerRuntimeListenerRemoval(gridConfig.navigationVisibility().addListener(v -> markLayoutDirty()));
 	}
 
-	private void markLayoutDirty() {
+	private boolean keepPositionOnRelayout;
+
+    /** Sorting inputs must not follow an ingredient anchor into a different row or page. */
+    public void setKeepPositionOnRelayout(boolean keepPosition) {
+        updateLayoutIfDirty();
+        keepPositionOnRelayout = keepPosition;
+    }
+
+    private void markLayoutDirty() {
 		this.layoutDirty = true;
 	}
 
@@ -123,9 +132,10 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 		if (this.layoutDirty && this.availableArea != null) {
 			IElement<?> pageAnchorElement = getPageAnchorElement();
 			updateBounds(this.availableArea, this.guiExclusionAreas, this.mouseExclusionPoint);
-			this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
-		}
-	}
+			if (keepPositionOnRelayout) this.controller.updateLayoutKeepingPosition();
+            else this.controller.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
+        }
+    }
 
 	@Override
 	public boolean hasRoom() {
@@ -177,13 +187,21 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 		int ingredientCount
 	) {
 		if (this.gridConfig.navigationMode().get().usesScrollbar()) {
-			return IngredientGridScrollbarLayout.calculate(
+			var layout = IngredientGridScrollbarLayout.calculate(
 				this.gridConfig,
-				availableArea,
+				workspaceNavigation ? availableArea.cropTop(IngredientGridWithNavigationLayout.NAVIGATION_HEIGHT + IngredientGridWithNavigationLayout.INNER_PADDING) : availableArea,
 				guiExclusionAreas,
 				ingredientCount
 			);
+			if (workspaceNavigation && layout.hasRoom()) {
+				var navigationArea = IngredientGridWithNavigationLayout.calculateNavigationArea(layout.slotBackgroundArea(), true);
+				return IngredientGridWithNavigationLayout.fromGridArea(this.gridConfig,
+						layout.ingredientGridArea(), layout.availableSlotCount(), navigationArea,
+						navigationArea, true, layout.scrollbarArea(), layout.scrollbarEnabled());
+			}
+			return layout;
 		}
+		if (workspaceNavigation) return IngredientGridButtonNavigationLayout.calculateWithNavigation(this.gridConfig, availableArea, guiExclusionAreas);
 
 		return IngredientGridButtonNavigationLayout.calculate(
 			this.gridConfig,
@@ -252,6 +270,22 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 		return controller;
 	}
 
+	public void configureNavigation(IPaged paged, java.util.function.Supplier<String> displayText) {
+		this.workspaceNavigation = true;
+		this.navigation.configure(paged, displayText);
+		markLayoutDirty();
+	}
+
+	public void setNavigationLeadingButton(eakerzt.jiv.gui.elements.IconButton button) {
+		this.navigation.setLeadingButton(button);
+		markLayoutDirty();
+	}
+
+	public ImmutableRect2i getNavigationLeadingButtonArea() {
+		updateLayoutIfDirty();
+		return this.navigation.getLeadingButtonArea();
+	}
+
 	public void scrollByPixels(double pixels) {
 		updateLayoutIfDirty();
 		this.controller.scrollByPixels(pixels);
@@ -292,6 +326,7 @@ public class IngredientGridWithNavigation implements IIngredientListOverlayConte
 		}
 		this.ghostIngredientDragManager.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
 		this.ingredientGrid.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
+		this.navigation.drawTooltips(guiGraphics, mouseX, mouseY);
 	}
 
 	@Override

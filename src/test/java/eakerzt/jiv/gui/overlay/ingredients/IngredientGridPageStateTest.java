@@ -5,6 +5,7 @@ import eakerzt.jiv.api.ingredients.IIngredientType;
 import eakerzt.jiv.api.ingredients.ITypedIngredient;
 import eakerzt.jiv.gui.overlay.elements.IElement;
 import eakerzt.jiv.gui.overlay.elements.IngredientElement;
+import eakerzt.jiv.gui.bookmarks.BookmarkCell;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -22,6 +23,43 @@ public class IngredientGridPageStateTest {
 
 	private static final IIngredientType<Object> OBJECT_TYPE = () -> Object.class;
 	private static final IIngredientType<String> STRING_TYPE = () -> String.class;
+
+	@Test
+	public void recipeUsesAnchorSkipsBookmarkGapsAfterRelayout() {
+		Object ingredient = new Object();
+		IElement<?> anchor = new IngredientElement<>(new TestTypedIngredient<>(OBJECT_TYPE, ingredient));
+		IElement<?> rebuilt = new IngredientElement<>(new TestTypedIngredient<>(OBJECT_TYPE, ingredient));
+		List<IElement<?>> elements = List.of(BookmarkCell.gap(0), rebuilt, BookmarkCell.gap(1));
+		IngredientGridPageState state = new IngredientGridPageState();
+		state.setPageAnchorElement(anchor);
+		assertSame(anchor, state.getPageAnchorElement(elements));
+		assertEquals(1, findIndexOfIngredientElement(anchor, elements));
+		assertEquals(0, state.updateKeepingPageAnchorVisible(anchor, elements, 2));
+	}
+
+	@Test
+	public void emptyBookmarkCellsCannotBecomePageAnchors() {
+		IElement<?> gap = BookmarkCell.gap(0);
+		IngredientGridPageState state = new IngredientGridPageState();
+		state.setPageAnchorElement(gap);
+		assertEquals(MISSING_ANCHOR, findIndexOfIngredientElement(gap, List.of(gap)));
+		assertNull(state.getPageAnchorElement(List.of(gap)));
+	}
+
+	@Test
+	public void scrollAnchorAlsoSkipsBookmarkGapsAfterRelayout() {
+		Object ingredient = new Object();
+		IElement<?> anchor = new IngredientElement<>(new TestTypedIngredient<>(OBJECT_TYPE, ingredient));
+		IElement<?> rebuilt = new IngredientElement<>(new TestTypedIngredient<>(OBJECT_TYPE, ingredient));
+		List<IElement<?>> elements = List.of(BookmarkCell.gap(0), rebuilt, BookmarkCell.gap(0));
+		IngredientGridScrollState state = new IngredientGridScrollState();
+		state.setScrollAnchorElement(anchor, 0);
+		assertSame(anchor, state.getScrollAnchorElement(elements));
+		state.updateKeepingScrollAnchorVisible(anchor, elements, 1, 1, 1, false, 18);
+		assertSame(anchor, state.getScrollAnchorElement(elements));
+		state.setScrollAnchorElement(elements.getFirst(), 0);
+		assertNull(state.getScrollAnchorElement(elements));
+	}
 
 	@Test
 	public void validAnchorIndexSelectsContainingPage() {

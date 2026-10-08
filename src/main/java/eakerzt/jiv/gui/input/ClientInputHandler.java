@@ -14,6 +14,8 @@ import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.input.CharacterEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.InputQuirks;
+import org.lwjgl.glfw.GLFW;
 
 import java.util.List;
 
@@ -25,6 +27,7 @@ public class ClientInputHandler {
 	private final IInternalKeyMappings keybindings;
 	private final IScreenHelper screenHelper;
 	private final ReflectionUtil reflectionUtil = new ReflectionUtil();
+	private boolean physicalCtrlLeftClick;
 
 	public ClientInputHandler(
 		List<ICharTypedHandler> charTypedHandlers,
@@ -43,6 +46,7 @@ public class ClientInputHandler {
 	}
 
 	public void onInitGui() {
+		this.physicalCtrlLeftClick = false;
 		this.chatLinkInputHandler.handleGuiChange();
 		this.inputRouter.handleGuiChange();
 		this.dragRouter.handleGuiChange();
@@ -57,7 +61,7 @@ public class ClientInputHandler {
 		}
 
 		// Focus-search explicitly transfers focus, including from the creative inventory's always-focused search box.
-		if (input.is(keybindings.getFocusSearch()) || !isContainerTextFieldFocused(screen)) {
+		if (input.is(keybindings.getFocusSearch()) || keybindings.getCopyIngredientName().isActiveAndMatchesAllowingExtraModifiers(input.getKey()) || !isContainerTextFieldFocused(screen)) {
 			IGuiProperties guiProperties = screenHelper.getGuiProperties(screen).orElse(null);
 			if (guiProperties != null) {
 				return this.inputRouter.handleUserInput(screen, guiProperties, input, keybindings);
@@ -99,6 +103,13 @@ public class ClientInputHandler {
 	}
 
 	public boolean onGuiMouseClicked(Screen screen, UserInput input) {
+		if (InputQuirks.SIMULATE_RIGHT_CLICK_WITH_LONG_LEFT_CLICK && input.isMouseButton(1)
+				&& Minecraft.getInstance().hasControlDown()
+				&& GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().handle(), 0) == GLFW.GLFW_PRESS
+				&& GLFW.glfwGetMouseButton(Minecraft.getInstance().getWindow().handle(), 1) != GLFW.GLFW_PRESS) {
+			physicalCtrlLeftClick = true;
+			input = input.withMouseButton(0);
+		}
 		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
 			return true;
 		}
@@ -108,20 +119,24 @@ public class ClientInputHandler {
 			return false;
 		}
 
-		if (this.dragRouter.isDragging() && input.is(keybindings.getLeftClick())) {
+		if (this.dragRouter.isDragging() && input.isMouseButton(0)) {
 			// an extra left click during a drag (i.e. multi-touch) must not cancel it; it ends on release
 			return true;
 		}
 
 		boolean handled = this.inputRouter.handleUserInput(screen, guiProperties, input, keybindings);
 
-		if (Minecraft.getInstance().screen == screen && input.is(keybindings.getLeftClick())) {
+		if (Minecraft.getInstance().screen == screen && input.isMouseButton(0)) {
 			handled |= this.dragRouter.startDrag(screen, input);
 		}
 		return handled;
 	}
 
 	public boolean onGuiMouseReleased(Screen screen, UserInput input) {
+		if (physicalCtrlLeftClick && input.isMouseButton(1)) {
+			physicalCtrlLeftClick = false;
+			input = input.withMouseButton(0);
+		}
 		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
 			return true;
 		}
@@ -133,7 +148,7 @@ public class ClientInputHandler {
 
 		boolean handled = this.inputRouter.handleUserInput(screen, guiProperties, input, keybindings);
 
-		if (input.is(keybindings.getLeftClick())) {
+		if (input.isMouseButton(0)) {
 			handled |= this.dragRouter.completeDrag(screen, input);
 		}
 		return handled;
@@ -144,7 +159,7 @@ public class ClientInputHandler {
 	}
 
 	public boolean onGuiMouseDragged(Screen screen, MouseButtonEvent event, double dragX, double dragY) {
-		InputConstants.Key input = InputConstants.Type.MOUSE.getOrCreate(event.button());
+		InputConstants.Key input = InputConstants.Type.MOUSE.getOrCreate(physicalCtrlLeftClick && event.button() == 1 ? 0 : event.button());
 		return this.inputRouter.handleMouseDragged(event.x(), event.y(), input, dragX, dragY);
 	}
 

@@ -152,8 +152,8 @@ builder.addOutputSlot(60, 50).add(Fluids.LAVA, 1000)
 ```
 
 - Supply a fraction, not a percentage: `0.25` means 25%. Zero and one are valid; out-of-range values, NaN and infinity throw `IllegalArgumentException`. Convert EndlessTech's basis points by dividing by `10000.0`.
-- Reserve six pixels above the slot for the chance label. Text scales to fit and shows at most two decimals. Tiny probabilities show `<0.01%`; probabilities very close to but below one show `>99.99%`. The tooltip retains the full decimal percentage of the supplied value.
-- Zero displays `0%`. One omits the compact label but retains a 100% tooltip. Calling `setChance` again always enables display, including after `setShowChance(false)`.
+- The chance label is right-aligned inside the slot's top-right corner, without requiring space outside the slot. Text scales to fit and shows at most two decimals. Tiny probabilities show `<0.01%`; probabilities very close to but below one show `>99.99%`. The tooltip retains the full decimal percentage of the supplied value.
+- Zero displays `0%`. One hides both the compact label and the probability tooltip. Calling `setChance` again always enables display, including after `setShowChance(false)`; a probability of one remains hidden.
 - Both decorations can coexist with each other, item/fluid counts, renderers and custom overlays. Existing overlays and rich tooltip callbacks are retained. Empty slots have no marker or metadata tooltip.
 - Metadata belongs to the slot and follows its displayed ingredient, including cycling and overrides. It is not configured separately per candidate.
 - These are presentation APIs. They do not implement consumption, production, random rolls, server execution or ingredient indexing. Input slots use the generic “Chance” tooltip; the recipe defines its meaning.

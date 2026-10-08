@@ -91,6 +91,12 @@ public interface IRecipeSlotView {
 	 */
 	RecipeIngredientRole getRole();
 
+	/** Non-consumed display metadata supplied by the recipe integration. */
+	default boolean isNonConsumed() { return false; }
+
+	/** Probability metadata supplied by the recipe integration, defaulting to a certain output. */
+	default double getChance() { return 1; }
+
 	/**
 	 * Draws a highlight on background of this ingredient.
 	 * This is used by recipe transfer errors to turn missing ingredient backgrounds to red, but can be used for other purposes.

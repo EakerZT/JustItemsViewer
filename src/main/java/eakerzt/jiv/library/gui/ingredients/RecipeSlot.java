@@ -64,6 +64,12 @@ public class RecipeSlot implements IRecipeSlotView, IRecipeSlotDrawable {
 	private ImmutableRect2i rect;
 	private boolean showFluidAmount;
 	private eakerzt.jiv.library.render.RecipeSlotDecorations recipeDecorations = eakerzt.jiv.library.render.RecipeSlotDecorations.NONE;
+	@Override
+	public boolean isNonConsumed() { return recipeDecorations.nonConsumed(); }
+
+	@Override
+	public double getChance() { return recipeDecorations.chance(); }
+
 	public void setRecipeDecorations(eakerzt.jiv.library.render.RecipeSlotDecorations decorations) {
 		this.recipeDecorations = java.util.Objects.requireNonNull(decorations);
 	}

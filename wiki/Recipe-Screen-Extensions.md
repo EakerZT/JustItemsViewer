@@ -103,7 +103,7 @@ public void cancelScreenInteraction() {
 
 ## 原生左右面板示例
 
-`IGuiHelper.drawRecipeSidePanel(GuiGraphicsExtractor graphics, Rect2i bounds, boolean rightSide)` 绘制原生边框和槽背景；`rightSide=true` 仅镜像边框，不镜像物品。正尺寸至少 17×16 像素；任一尺寸不大于零时不绘制；正尺寸不足时抛出 `IllegalArgumentException`。方法不绘制物品，也不自动提供 Tooltip 或原料命中。
+`IGuiHelper.drawRecipeSidePanel(GuiGraphicsExtractor graphics, Rect2i bounds, boolean rightSide)` 绘制原生边框和槽背景；`rightSide=true` 使用独立的右侧边框材质，与左侧面板保持相同的左上方光照方向。正尺寸至少 17×16 像素；任一尺寸不大于零时不绘制；正尺寸不足时抛出 `IllegalArgumentException`。方法不绘制物品，也不自动提供 Tooltip 或原料命中。
 
 下面的完整类保留物品数量，按可用高度增加列数而不滚动；空列表隐藏面板，一项列表仍显示。物品变化时可在自己的扩展中重建槽位，然后由布局回调刷新位置。占用矩形用于避让，不会自动裁剪或保证任意宽度面板都能容纳在屏幕内，面板尺寸由扩展负责。
 

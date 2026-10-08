@@ -261,11 +261,14 @@ public class JivGuiStarter {
 
 		UserInputRouter userInputRouter = new UserInputRouter(
 			"JIVGlobal",
+			new eakerzt.jiv.gui.input.handlers.CopyIngredientNameInputHandler(recipeFocusSource, ingredientManager),
 			recipesGuiForegroundInputLayer,
+			bookmarkOverlay.createGroupScrollInputHandler(),
 			bookmarkPreviewTooltipController,
 			new EditInputHandler(recipeFocusSource, toggleState, editModeConfig),
 			ingredientListOverlay.createDeleteItemInputHandler(),
 			bookmarkOverlay.createDeleteItemInputHandler(),
+			bookmarkOverlay.createGroupInputHandler(),
 			new CheatInputHandler(recipeFocusSource, clientConfig, ingredientManager, toggleState, serverConnection),
 			new ElementInputHandler(recipeFocusSource),
 			ingredientListOverlay.createInputHandler(),
@@ -276,7 +279,6 @@ public class JivGuiStarter {
 				bookmarkList,
 				bookmarkOverlay,
 				bookmarkPreviewTooltipController,
-				clientConfig,
 				recipesGui
 			),
 			new GlobalInputHandler(toggleState),

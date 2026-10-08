@@ -1,6 +1,7 @@
 package eakerzt.jiv.common.input;
 
 import com.mojang.datafixers.util.Either;
+import com.mojang.blaze3d.platform.InputConstants;
 import eakerzt.jiv.api.gui.inputs.IJivUserInput;
 import eakerzt.jiv.api.runtime.IJivKeyMapping;
 import eakerzt.jiv.common.platform.IPlatformInputHelper;
@@ -8,12 +9,24 @@ import eakerzt.jiv.common.platform.Services;
 import net.minecraft.client.KeyMapping;
 import net.minecraft.client.input.KeyEvent;
 import net.minecraft.client.input.MouseButtonEvent;
+import net.minecraft.client.input.MouseButtonInfo;
 import org.apache.commons.lang3.function.ToBooleanBiFunction;
 
 import java.util.Optional;
 import java.util.function.Function;
 
 public abstract class UserInput implements IJivUserInput {
+	/** Mouse gesture routing must not reject clicks just because a modifier is held. */
+	public final boolean isMouseButton(int button) {
+		return getKey().getType() == InputConstants.Type.MOUSE && getKey().getValue() == button;
+	}
+
+	public final UserInput withMouseButton(int button) {
+		return getEvent().map(data -> new MouseUserInput(
+				new MouseButtonEvent(data.event().x(), data.event().y(),
+						new MouseButtonInfo(button, data.event().modifiers())),
+				data.doubleClicked(), getInputType()), key -> this);
+	}
 	@FunctionalInterface
 	public interface MouseClickable {
 		boolean mouseClicked(MouseButtonEvent mouseButtonEvent, boolean doubleClick);

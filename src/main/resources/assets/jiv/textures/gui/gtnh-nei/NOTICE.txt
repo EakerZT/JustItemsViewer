@@ -1,0 +1,6 @@
+craftingtree.png is reproduced unchanged from GTNewHorizons/NotEnoughItems.
+Source: https://github.com/GTNewHorizons/NotEnoughItems
+Revision: 35f5400ecbf802bf9bdcd602c9b04c9d7d2614ff
+GTNH Modifications Copyright (c) 2019-2024 mitchej123 and the GTNH Team.
+This asset is licensed under LGPL-3.0-or-later. See LICENSE.txt in this directory.
+The bookmark Java implementation uses JIV APIs and independently adapts the upstream behavior.

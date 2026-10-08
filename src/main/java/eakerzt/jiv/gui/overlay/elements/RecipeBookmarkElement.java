@@ -112,7 +112,10 @@ public class RecipeBookmarkElement<R, I> implements IElement<I> {
 
 	@Override
 	public void show(IRecipesGui recipesGui, FocusUtil focusUtil, List<RecipeIngredientRole> roles) {
-		// ignore roles, always display the bookmarked recipe if it's clicked
+		if (!roles.equals(List.of(RecipeIngredientRole.OUTPUT))) {
+			recipesGui.show(focusUtil.createFocuses(getTypedIngredient(), roles));
+			return;
+		}
 
 		IRecipeCategory<R> recipeCategory = recipeBookmark.getRecipeCategory();
 		R recipe = recipeBookmark.getRecipe();

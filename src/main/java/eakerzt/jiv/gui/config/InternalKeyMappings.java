@@ -45,6 +45,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	private final IJivKeyMappingInternal maxTransferRecipeBookmark;
 	private final IJivKeyMappingInternal quickMove;
 	private final IJivKeyMappingInternal shareToChat;
+	private final IJivKeyMappingInternal copyIngredientName;
 
 	private final IJivKeyMappingWithExtraModifiers showRecipe;
 	private final IJivKeyMappingWithExtraModifiers showUses;
@@ -141,7 +142,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 
 		toggleBookmarkOverlay = overlay.createMapping("key.jiv.toggleBookmarkOverlay")
 			.setContext(JivKeyConflictContext.GUI)
-			.buildUnbound()
+			.buildKeyboardKey(GLFW.GLFW_KEY_B)
 			.register(registerMethod);
 
 		// Mouse Hover
@@ -172,14 +173,14 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 
 		transferRecipeBookmark = mouseHover.createMapping("key.jiv.transferRecipeBookmark")
 			.setContext(JivKeyConflictContext.JIV_GUI_HOVER_BOOKMARK)
-			.setModifier(JivKeyModifier.SHIFT)
-			.buildMouseLeft()
+			.setModifier(JivKeyModifier.ALT)
+			.buildMouseRight()
 			.register(registerMethod);
 
 		maxTransferRecipeBookmark = mouseHover.createMapping("key.jiv.maxTransferRecipeBookmark")
 			.setContext(JivKeyConflictContext.JIV_GUI_HOVER_BOOKMARK)
 			.setModifier(JivKeyModifier.CONTROL_OR_COMMAND)
-			.buildMouseLeft()
+			.buildMouseRight()
 			.register(registerMethod);
 
 		quickMove = mouseHover.createMapping("key.jiv.quickMove")
@@ -191,6 +192,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 		shareToChat = mouseHover.createMapping("key.jiv.shareToChat")
 			.setContext(JivKeyConflictContext.JIV_GUI_HOVER)
 			.buildUnbound()
+			.register(registerMethod);
+		copyIngredientName = mouseHover.createMapping("key.jiv.copyIngredientName")
+			.setContext(JivKeyConflictContext.JIV_GUI_HOVER)
+			.setModifier(JivKeyModifier.CONTROL)
+			.buildKeyboardKey(GLFW.GLFW_KEY_C)
 			.register(registerMethod);
 
 		// Search Bar
@@ -324,6 +330,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 				maxTransferRecipeBookmark,
 				quickMove,
 				shareToChat,
+				copyIngredientName,
 				toggleOverlay,
 				toggleBookmarkOverlay,
 				previousPage,
@@ -494,6 +501,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	@Override
 	public IJivKeyMapping getShareToChat() {
 		return shareToChat;
+	}
+
+	@Override
+	public eakerzt.jiv.common.input.keys.IJivKeyMappingWithExtraModifiers getCopyIngredientName() {
+		return copyIngredientName;
 	}
 
 	@Override

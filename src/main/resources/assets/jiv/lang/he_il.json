@@ -32,7 +32,7 @@
   "jiv.config.valid": "תקף",
   "jiv.config.title": "%MODNAME הגדרות",
   "jiv.config.mode": "מצב",
-  "jiv.config.mode.description": "שנה את המצב שJEI עובד בו",
+  "jiv.config.mode.description": "שנה את המצב שJIV עובד בו",
   "jiv.config.mode.cheatItemsEnabled": "מצב רמאות חפצים",
   "jiv.config.mode.cheatItemsEnabled.description": "תן חפצים במקום להציר מתכונים",
   "jiv.config.mode.editEnabled": "מצב החבאת חפצים",
@@ -52,7 +52,7 @@
   "jiv.config.client.search.colorSearchMode": "נדרש ^ בשביל צבעים",
   "jiv.config.client.search.colorSearchMode.description": "נדרש \"^\" לפני מילה גדי לחפש צבע של חפץ.",
   "jiv.config.client.advanced": "מתקדם",
-  "jiv.config.client.advanced.description": "הגדרות מתכדמות כדי לשנות את האופן שJEI מתנהג.",
+  "jiv.config.client.advanced.description": "הגדרות מתכדמות כדי לשנות את האופן שJIV מתנהג.",
   "jiv.config.client.advanced.itemBlacklist": "רשימה שחורה של חפצים",
   "jiv.config.client.advanced.itemBlacklist.description": "רישמה של חפצים שלא יוצגו ברשימת החפצים. פורמט: modId[:name[:meta]]. מצב עריכה אוטומטית יוסיף או יוריד דברים מפה.",
 

@@ -59,7 +59,7 @@ These are migration hints; the current public interfaces are authoritative.
 
 ## Maven dependencies fail to resolve
 
-Version `0.0.1-alpha-2` is published to Maven Central. Check group `io.github.eakerzt`, artifact `jiv-26.1.2-neoforge`, version, and `mavenCentral()`. If Gradle cached a failed lookup before publication, retry with `--refresh-dependencies`. Disable offline mode and check network access to Maven Central. See [Getting started](Getting-Started-en.md).
+Version `0.0.1-alpha-3` is published to Maven Central. Check group `io.github.eakerzt`, artifact `jiv-26.1.2-neoforge`, version, and `mavenCentral()`. If Gradle cached a failed lookup before publication, retry with `--refresh-dependencies`. Disable offline mode and check network access to Maven Central. See [Getting started](Getting-Started-en.md).
 
 ## Does the example implement a complete machine?
 

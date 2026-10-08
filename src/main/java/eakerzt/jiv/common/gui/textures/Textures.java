@@ -43,6 +43,7 @@ public class Textures {
 	private final IDrawableStatic historyButtonEnabledIcon;
 	private final IDrawableStatic infoIcon;
 	private final ScalableDrawable catalystTab;
+	private final ScalableDrawable catalystTabRight;
 	private final ScalableDrawable recipeOptionsTab;
 	private final IDrawableStatic flameIcon;
 	private final IDrawableStatic flameEmptyIcon;
@@ -86,6 +87,7 @@ public class Textures {
 		this.scrollbarBackground = createScalableGuiSprite("scrollbar_background");
 		this.scrollbarMarker = createScalableGuiSprite("scrollbar_marker");
 		this.catalystTab = createScalableGuiSprite("catalyst_tab");
+		this.catalystTabRight = createScalableGuiSprite("catalyst_tab_right");
 		this.recipeOptionsTab = createScalableGuiSprite("recipe_options_tab");
 		this.recipeArrow = createGuiSprite("recipe_arrow", 22, 16);
 		this.recipeArrowFilled = createGuiSprite("recipe_arrow_filled", 22, 16);
@@ -252,6 +254,10 @@ public class Textures {
 
 	public ScalableDrawable getCatalystTab() {
 		return catalystTab;
+	}
+
+	public ScalableDrawable getCatalystTabRight() {
+		return catalystTabRight;
 	}
 
 	public ScalableDrawable getRecipeOptionsTab() {

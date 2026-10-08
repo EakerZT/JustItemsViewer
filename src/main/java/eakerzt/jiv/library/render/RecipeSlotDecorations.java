@@ -36,13 +36,13 @@ public record RecipeSlotDecorations(boolean nonConsumed, boolean showChance, dou
 
     public void addTooltip(ITooltipBuilder tooltip) {
         if (nonConsumed) tooltip.add(Component.translatable("jiv.tooltip.recipe.not_consumed"));
-        if (showChance) tooltip.add(Component.translatable("jiv.tooltip.recipe.chance",exactPercent(chance)));
+        if (showChance && chance < 1) tooltip.add(Component.translatable("jiv.tooltip.recipe.chance",exactPercent(chance)));
     }
 
     public void draw(GuiGraphicsExtractor graphics,int x,int y,int width,int height) {
         if (nonConsumed) drawNonConsumed(graphics,x,y,width,height);
-        // A separate line above the slot leaves item/fluid counts and candidate badges unobstructed.
-        if (showChance && chance < 1) drawLabel(graphics,compactPercent(chance),x,y-6,width,6,0xffffff00);
+        // Keep the probability inside the slot, aligned to its top-right corner.
+        if (showChance && chance < 1) drawLabel(graphics,compactPercent(chance),x,y,width,Math.min(height,6),0xffffff00);
     }
 
     private static void drawNonConsumed(GuiGraphicsExtractor graphics,int x,int y,int width,int height) {
@@ -59,10 +59,11 @@ public record RecipeSlotDecorations(boolean nonConsumed, boolean showChance, dou
     private static void drawLabel(GuiGraphicsExtractor graphics,String text,int x,int y,int width,int height,int color) {
         if (width<=0 || height<=0) return;
         var font=Minecraft.getInstance().font;
-        float scale=Math.min(0.65f,Math.min((float)width/font.width(text),(float)height/font.lineHeight));
+        int textWidth=font.width(text);
+        float scale=Math.min(0.65f,Math.min((float)width/textWidth,(float)height/font.lineHeight));
         var pose=graphics.pose();pose.pushMatrix();
         try {
-            pose.translate(x,y);pose.scale(scale,scale);
+            pose.translate(x+width-textWidth*scale,y);pose.scale(scale,scale);
             graphics.text(font,text,0,0,color,true);
         } finally { pose.popMatrix(); }
     }

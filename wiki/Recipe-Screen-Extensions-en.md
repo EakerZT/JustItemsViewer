@@ -63,7 +63,7 @@ Replacing a layout, closing the screen or switching away cancels capture and cal
 
 ## Native panel example
 
-`IGuiHelper.drawRecipeSidePanel(GuiGraphicsExtractor, Rect2i bounds, boolean rightSide)` draws a native frame and slot background. The right variant mirrors only the frame. Positive dimensions must be at least 17 by 16 pixels; a non-positive dimension draws nothing; smaller positive dimensions throw `IllegalArgumentException`. The helper does not draw ingredients, supply tooltips or perform hit-testing.
+`IGuiHelper.drawRecipeSidePanel(GuiGraphicsExtractor, Rect2i bounds, boolean rightSide)` draws a native frame and slot background. The right variant uses a dedicated frame texture with the same top-left lighting as the left panel. Positive dimensions must be at least 17 by 16 pixels; a non-positive dimension draws nothing; smaller positive dimensions throw `IllegalArgumentException`. The helper does not draw ingredients, supply tooltips or perform hit-testing.
 
 The complete example below preserves stack counts, adds columns instead of scrolling, hides empty panels, and keeps a single candidate visible. Rebuild slots when your ingredient contents change and update positions from the layout callback. Occupied bounds reserve space; they do not clip panels or guarantee that arbitrary panel widths fit the screen.
 

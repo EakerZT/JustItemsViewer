@@ -19,6 +19,11 @@ public final class IngredientGridButtonNavigationLayout {
 	private IngredientGridButtonNavigationLayout() {
 	}
 
+	public static IngredientGridWithNavigationLayout calculateWithNavigation(
+			IIngredientGridConfig gridConfig, ImmutableRect2i availableArea, Set<ImmutableRect2i> guiExclusionAreas) {
+		return calculateForNavigation(gridConfig, availableArea, guiExclusionAreas, true);
+	}
+
 	public static IngredientGridWithNavigationLayout calculate(
 		IIngredientGridConfig gridConfig,
 		ImmutableRect2i availableArea,

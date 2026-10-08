@@ -39,6 +39,28 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ClientConfigMigrationTest {
+	@Test
+	public void bookmarkAndHistoryVisibilityDefaultsAreSavedAndEditable(@TempDir Path tempDir) {
+		ConfigFileWatcherSettings watcher = ConfigFileWatcherSettings.clientDefaults().withEnabled(false);
+		ConfigManager manager = new ConfigManager("Visibility Defaults Test", watcher, watcher);
+		Path configFile = tempDir.resolve("jiv-client.ini");
+		var sorting = manager.createInMemorySortingConfig(Comparator.<String>naturalOrder(), true);
+		ClientConfigs configs = new ClientConfigs(new ConfigSchemaBuilder("jiv", configFile, "jiv.config.client", manager), false, sorting);
+		IClientConfig client = configs.getClientConfig();
+		assertTrue(client.bookmarkEnabled().get());
+		assertTrue(client.lookupHistoryEnabled().get());
+		assertEquals(HistoryDisplaySide.RIGHT, client.lookupHistoryDisplaySide().get());
+		client.bookmarkEnabled().set(false);
+		client.lookupHistoryEnabled().set(false);
+		client.lookupHistoryDisplaySide().set(HistoryDisplaySide.LEFT);
+		((eakerzt.jiv.config.internal.scheduler.DelayedExecutor) manager.getSaveScheduler()).shutdown();
+		ConfigManager reloadedManager = new ConfigManager("Visibility Reload Test", watcher, watcher);
+		var reloadedSorting = reloadedManager.createInMemorySortingConfig(Comparator.<String>naturalOrder(), true);
+		ClientConfigs reloaded = new ClientConfigs(new ConfigSchemaBuilder("jiv", configFile, "jiv.config.client", reloadedManager), false, reloadedSorting);
+		assertFalse(reloaded.getClientConfig().bookmarkEnabled().get());
+		assertFalse(reloaded.getClientConfig().lookupHistoryEnabled().get());
+		assertEquals(HistoryDisplaySide.LEFT, reloaded.getClientConfig().lookupHistoryDisplaySide().get());
+	}
 	@ParameterizedTest
 	@ValueSource(strings = {"resourceLocationSearchMode", "identifierSearchMode"})
 	public void loadsEveryReleasedClientConfigValue(String identifierSearchKey, @TempDir Path tempDir) throws IOException {
@@ -154,7 +176,6 @@ public class ClientConfigMigrationTest {
 		assertTrue(client.showHiddenIngredients().get());
 		assertFalse(client.showTagRecipesEnabled().get());
 		assertEquals(BookmarkAddPosition.FRONT, client.bookmarkAddPosition().get());
-		assertFalse(client.bookmarkOutputAsRecipe().get());
 		assertFalse(client.dragToRearrangeBookmarksEnabled().get());
 		assertFalse(client.bookmarkTooltipPreviewEnabled().get());
 		assertTrue(client.bookmarkTooltipIngredientsEnabled().get());
@@ -223,7 +244,6 @@ public class ClientConfigMigrationTest {
 			false,
 			reloadedRecipeSorting
 		);
-		assertFalse(reloaded.getClientConfig().bookmarkOutputAsRecipe().get());
 		assertFalse(reloaded.getClientConfig().recipeSyncWarningEnabled().get());
 		assertFalse(reloaded.getClientConfig().recipeSlotCyclingEnabled().get());
 		assertEquals(IngredientGridLayoutMode.MAXIMIZE_AVAILABLE_SPACE, reloaded.getIngredientListConfig().layoutMode().get());

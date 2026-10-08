@@ -21,8 +21,8 @@ public final class ClientConfig implements IClientConfig {
 	private final IConfigValue<Boolean> showHiddenIngredients;
 
 	// bookmarks
+	private final IConfigValue<Boolean> bookmarkEnabled;
 	private final IConfigValue<BookmarkAddPosition> bookmarkAddPosition;
-	private final IConfigValue<Boolean> bookmarkOutputAsRecipe;
 	private final IConfigValue<Boolean> bookmarkTooltipPreviewEnabled;
 	private final IConfigValue<Boolean> bookmarkTooltipIngredientsEnabled;
 	private final IConfigValue<Boolean> holdShiftToShowBookmarkTooltipFeaturesEnabled;
@@ -94,16 +94,15 @@ public final class ClientConfig implements IClientConfig {
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
 
+		bookmarkEnabled = bookmarkList.addBoolean("enabled", true)
+			.setEditMode(ConfigValueEditMode.IMMEDIATE)
+			.build();
 		bookmarkAddPosition = bookmarkList.addValue(
 				"addBookmarksToFrontEnabled",
 				BookmarkAddPosition.END,
 				LegacyEnumSerializers.enumOrBoolean(BookmarkAddPosition.class, ClientConfig::bookmarkAddPositionFromLegacyBoolean)
 			)
 			.addLegacyValue("bookmarks", "addBookmarksToFrontEnabled")
-			.setEditMode(ConfigValueEditMode.IMMEDIATE)
-			.build();
-		bookmarkOutputAsRecipe = bookmarkList.addBoolean("bookmarkOutputAsRecipe", true)
-			.addLegacyValue("bookmarks", "bookmarkOutputAsRecipe")
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
 		dragToRearrangeBookmarksEnabled = bookmarkList.addBoolean("dragToRearrangeBookmarksEnabled", true)
@@ -196,7 +195,7 @@ public final class ClientConfig implements IClientConfig {
 		lookupBlockTagsEnabled = lookups.addBoolean("lookupBlockTagsEnabled", true)
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
-		lookupHistoryEnabled = lookups.addBoolean("enabled", false)
+		lookupHistoryEnabled = lookups.addBoolean("enabled", true)
 			.addLegacyValue("lookupHistory", "enabled")
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
@@ -208,7 +207,7 @@ public final class ClientConfig implements IClientConfig {
 			.addLegacyValue("lookupHistory", "maxIngredients")
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
-		lookupHistoryDisplaySide = lookups.addEnum("displaySide", HistoryDisplaySide.LEFT)
+		lookupHistoryDisplaySide = lookups.addEnum("displaySide", HistoryDisplaySide.RIGHT)
 			.addLegacyValue("lookupHistory", "displaySide")
 			.setEditMode(ConfigValueEditMode.IMMEDIATE)
 			.build();
@@ -283,9 +282,10 @@ public final class ClientConfig implements IClientConfig {
 	}
 
 	@Override
-	public IConfigValue<Boolean> bookmarkOutputAsRecipe() {
-		return bookmarkOutputAsRecipe;
+	public IConfigValue<Boolean> bookmarkEnabled() {
+		return bookmarkEnabled;
 	}
+
 
 	@Override
 	public IConfigValue<Boolean> bookmarkTooltipPreviewEnabled() {

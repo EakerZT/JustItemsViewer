@@ -4,7 +4,7 @@
 
 这份 Wiki 面向希望为模组接入 **Just Items Viewer（JIV）** 的开发者，介绍如何显示自定义配方、扩展原料搜索、接入容器界面，以及调用运行时 API。
 
-文档基于当前仓库：**JIV 0.0.1-alpha-2 / Minecraft 26.1.2 / NeoForge 26.1.2.99 / Java 25**。API 包名为 `eakerzt.jiv.api`，内置配置 API 位于 `eakerzt.jiv.config.api`。源码中的部分 `@since` 标记继承自上游，不能当作 JIV 的发行版本号。
+文档基于当前仓库：**JIV 0.0.1-alpha-3 / Minecraft 26.1.2 / NeoForge 26.1.2.99 / Java 25**。API 包名为 `eakerzt.jiv.api`，内置配置 API 位于 `eakerzt.jiv.config.api`。源码中的部分 `@since` 标记继承自上游，不能当作 JIV 的发行版本号。
 
 ## 从哪里开始
 
@@ -31,7 +31,7 @@
 
 ## 文档与源码
 
-JIV **0.0.1-alpha-2** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-2)，完整依赖配置见[快速开始](Getting-Started.md)。
+JIV **0.0.1-alpha-3** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3)，完整依赖配置见[快速开始](Getting-Started.md)。
 
 - [完整入门示例源码](Examples.md)
 - [JIV 公共 API 源码](https://github.com/EakerZT/JustItemsViewer/tree/main/src/main/java/eakerzt/jiv/api)

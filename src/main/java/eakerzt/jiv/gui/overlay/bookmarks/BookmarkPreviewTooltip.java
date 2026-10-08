@@ -2,6 +2,7 @@ package eakerzt.jiv.gui.overlay.bookmarks;
 
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.platform.cursor.CursorTypes;
+
 import eakerzt.jiv.api.gui.IRecipeLayoutDrawable;
 import eakerzt.jiv.api.gui.handlers.IGuiProperties;
 import eakerzt.jiv.api.recipe.RecipeIngredientRole;
@@ -9,19 +10,20 @@ import eakerzt.jiv.api.runtime.IJivRuntime;
 import eakerzt.jiv.common.Internal;
 import eakerzt.jiv.common.gui.JivTooltip;
 import eakerzt.jiv.common.input.IInternalKeyMappings;
-import eakerzt.jiv.common.transfer.RecipeTransferService;
-import eakerzt.jiv.common.util.ImmutableRect2i;
-import eakerzt.jiv.gui.elements.IconButton;
-import eakerzt.jiv.gui.input.IClickableIngredientInternal;
 import eakerzt.jiv.common.input.IMouseOverable;
 import eakerzt.jiv.common.input.IUserInputHandler;
 import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.common.input.handlers.SameElementInputHandler;
+import eakerzt.jiv.common.transfer.RecipeTransferService;
+import eakerzt.jiv.common.util.ImmutableRect2i;
+import eakerzt.jiv.gui.elements.IconButton;
+import eakerzt.jiv.gui.input.IClickableIngredientInternal;
 import eakerzt.jiv.gui.overlay.elements.RecipeBookmarkElement;
 import eakerzt.jiv.gui.recipes.PinnedTooltipRenderer;
 import eakerzt.jiv.gui.recipes.RecipeSlotClickTargetFactory;
 import eakerzt.jiv.gui.recipes.RecipeTransferButtonController;
 import eakerzt.jiv.gui.util.FocusUtil;
+
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
@@ -32,8 +34,10 @@ import java.util.function.BooleanSupplier;
 import java.util.stream.Stream;
 
 final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable {
-	private static final InputConstants.Key LEFT_MOUSE_BUTTON = InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_LEFT);
-	private static final InputConstants.Key RIGHT_MOUSE_BUTTON = InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_RIGHT);
+	private static final InputConstants.Key LEFT_MOUSE_BUTTON =
+			InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_LEFT);
+	private static final InputConstants.Key RIGHT_MOUSE_BUTTON =
+			InputConstants.Type.MOUSE.getOrCreate(InputConstants.MOUSE_BUTTON_RIGHT);
 
 	private final BookmarkPreviewTooltipController controller;
 	private final RecipeBookmarkElement<?, ?> element;
@@ -46,47 +50,77 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 	private final IUserInputHandler transferButtonInputHandler;
 
 	BookmarkPreviewTooltip(
-		BookmarkPreviewTooltipController controller,
-		RecipeBookmarkElement<?, ?> element,
-		BooleanSupplier sourceVisible,
-		PreviewTooltipComponent<?> component,
-		RecipeTransferService recipeTransferService,
-		int anchorX,
-		int anchorY
-	) {
+			BookmarkPreviewTooltipController controller,
+			RecipeBookmarkElement<?, ?> element,
+			BooleanSupplier sourceVisible,
+			PreviewTooltipComponent<?> component,
+			RecipeTransferService recipeTransferService,
+			int anchorX,
+			int anchorY) {
 		this.controller = controller;
 		this.element = element;
 		this.sourceVisible = sourceVisible;
 		this.component = component;
 		this.drawable = component.getRecipeLayout();
 		IJivRuntime jivRuntime = Internal.getJivRuntime();
-		this.clickTargetFactory = new RecipeSlotClickTargetFactory(
-			jivRuntime.getRecipeManager(),
-			Internal.getKeyMappings().getPauseRecipeCycling()::isDown
-		);
+		this.clickTargetFactory =
+				new RecipeSlotClickTargetFactory(
+						jivRuntime.getRecipeManager(),
+						Internal.getKeyMappings().getPauseRecipeCycling()::isDown);
 		this.tooltipRenderer = new PinnedTooltipRenderer(anchorX, anchorY);
-		this.transferButton = new IconButton(RecipeTransferButtonController.createForPinnedRecipe(this.drawable, recipeTransferService));
+		this.transferButton =
+				new IconButton(
+						RecipeTransferButtonController.createForPinnedRecipe(
+								this.drawable, recipeTransferService));
 		this.transferButtonInputHandler = this.transferButton.createInputHandler();
+	}
+
+	Optional<BookmarkPreviewTooltipController.RecipeSource> recipeSource(double x, double y) {
+		return drawable.getSlotUnderMouse(x, y)
+				.flatMap(
+						slot ->
+								element.getBookmark()
+										.filter(
+												bookmark ->
+														bookmark
+																instanceof
+																eakerzt.jiv.gui.bookmarks
+																				.RecipeBookmark<
+																		?, ?>)
+										.map(
+												bookmark ->
+														new BookmarkPreviewTooltipController
+																.RecipeSource(
+																(eakerzt.jiv.gui.bookmarks
+																						.RecipeBookmark<
+																				?, ?>)
+																		bookmark,
+																drawable.getRecipeSlotsView()
+																		.getSlotViews()
+																		.indexOf(slot.slot()))));
 	}
 
 	public boolean isSourceVisible() {
 		return sourceVisible.getAsBoolean();
 	}
 
-	public Stream<IClickableIngredientInternal<?>> getIngredientUnderMouse(double mouseX, double mouseY) {
+	public Stream<IClickableIngredientInternal<?>> getIngredientUnderMouse(
+			double mouseX, double mouseY) {
 		if (!this.controller.isActive(this)) {
 			return Stream.empty();
 		}
 		return getClickableIngredientUnderMouse(mouseX, mouseY).stream();
 	}
 
-	private Optional<IClickableIngredientInternal<?>> getClickableIngredientUnderMouse(double mouseX, double mouseY) {
+	private Optional<IClickableIngredientInternal<?>> getClickableIngredientUnderMouse(
+			double mouseX, double mouseY) {
 		return this.clickTargetFactory.create(this.drawable, mouseX, mouseY);
 	}
 
 	@Override
 	public boolean isMouseOver(double mouseX, double mouseY) {
-		return this.tooltipRenderer.isMouseOver(mouseX, mouseY) || this.transferButton.isMouseOver(mouseX, mouseY);
+		return this.tooltipRenderer.isMouseOver(mouseX, mouseY)
+				|| this.transferButton.isMouseOver(mouseX, mouseY);
 	}
 
 	public void update() {
@@ -105,9 +139,8 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 		this.transferButton.drawTooltips(guiGraphics, mouseX, mouseY);
 
 		if (isMouseOver(mouseX, mouseY)) {
-			if (this.transferButton.isMouseOver(mouseX, mouseY) ||
-				this.drawable.getSlotUnderMouse(mouseX, mouseY).isPresent()
-			) {
+			if (this.transferButton.isMouseOver(mouseX, mouseY)
+					|| this.drawable.getSlotUnderMouse(mouseX, mouseY).isPresent()) {
 				guiGraphics.requestCursor(CursorTypes.POINTING_HAND);
 			} else {
 				guiGraphics.requestCursor(CursorTypes.ARROW);
@@ -130,31 +163,27 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 		}
 		Rect2i recipeArea = this.drawable.getRect();
 		Rect2i buttonArea = this.drawable.getSideButtonArea(0);
-		this.transferButton.updateBounds(new ImmutableRect2i(
-			recipeArea.getX() + buttonArea.getX(),
-			recipeArea.getY() + buttonArea.getY(),
-			buttonArea.getWidth(),
-			buttonArea.getHeight()
-		));
+		this.transferButton.updateBounds(
+				new ImmutableRect2i(
+						recipeArea.getX() + buttonArea.getX(),
+						recipeArea.getY() + buttonArea.getY(),
+						buttonArea.getWidth(),
+						buttonArea.getHeight()));
 	}
 
 	@Override
 	public Optional<IUserInputHandler> handleUserInput(
-		Screen screen,
-		IGuiProperties guiProperties,
-		UserInput input,
-		IInternalKeyMappings keyBindings
-	) {
+			Screen screen,
+			IGuiProperties guiProperties,
+			UserInput input,
+			IInternalKeyMappings keyBindings) {
 		if (!this.controller.isActive(this)) {
 			return Optional.empty();
 		}
 
-		Optional<IUserInputHandler> transferButtonHandler = transferButtonInputHandler.handleUserInput(
-			screen,
-			guiProperties,
-			input,
-			keyBindings
-		);
+		Optional<IUserInputHandler> transferButtonHandler =
+				transferButtonInputHandler.handleUserInput(
+						screen, guiProperties, input, keyBindings);
 		if (transferButtonHandler.isPresent()) {
 			return transferButtonHandler;
 		}
@@ -176,8 +205,8 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 			return Optional.of(this);
 		}
 
-		IClickableIngredientInternal<?> ingredient = getClickableIngredientUnderMouse(mouseX, mouseY)
-			.orElse(null);
+		IClickableIngredientInternal<?> ingredient =
+				getClickableIngredientUnderMouse(mouseX, mouseY).orElse(null);
 		if (ingredient == null) {
 			return Optional.of(this);
 		}
@@ -189,11 +218,11 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 				roles = List.of(RecipeIngredientRole.INPUT, RecipeIngredientRole.CRAFTING_STATION);
 			}
 			IJivRuntime jivRuntime = Internal.getJivRuntime();
-			FocusUtil focusUtil = new FocusUtil(
-				jivRuntime.getJivHelpers().getFocusFactory(),
-				Internal.getClientConfigs().getClientConfig(),
-				jivRuntime.getIngredientManager()
-			);
+			FocusUtil focusUtil =
+					new FocusUtil(
+							jivRuntime.getJivHelpers().getFocusFactory(),
+							Internal.getClientConfigs().getClientConfig(),
+							jivRuntime.getIngredientManager());
 			ingredient.show(jivRuntime.getRecipesGui(), focusUtil, roles);
 			this.controller.hide();
 		}

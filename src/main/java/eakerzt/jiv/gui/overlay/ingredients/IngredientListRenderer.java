@@ -57,7 +57,18 @@ public class IngredientListRenderer {
 	private void addRenderElement(IngredientListSlot ingredientListSlot) {
 		ingredientListSlot.getOptionalElement()
 			.ifPresent(element -> {
-				ITypedIngredient<?> typedIngredient = element.getTypedIngredient();
+				if (element.isDragPlaceholder()) {
+                    ImmutableRect2i area = ingredientListSlot.getArea();
+                    renderOverlays.add(new IDrawable() {
+                        public int getWidth() { return area.width(); }
+                        public int getHeight() { return area.height(); }
+                        public void draw(GuiGraphicsExtractor graphics, int x, int y) {
+                            graphics.fill(area.x() + x, area.y() + y, area.getX() + area.getWidth() + x, area.getY() + area.getHeight() + y, 0x66555555);
+                        }
+                    });
+                    return;
+                }
+                ITypedIngredient<?> typedIngredient = element.getTypedIngredient();
 				IIngredientType<?> ingredientType = typedIngredient.getType();
 				ImmutableRect2i renderArea = ingredientListSlot.getRenderArea();
 				BatchRenderElement<?> batchRenderElement = new BatchRenderElement<>(typedIngredient.getIngredient(), renderArea.x(), renderArea.y());
@@ -94,7 +105,7 @@ public class IngredientListRenderer {
 				while (!element.isVisible() && elementIterator.hasNext()) {
 					element = elementIterator.next();
 				}
-				if (element.isVisible()) {
+				if (element.isVisible() && !element.isEmptySlot()) {
 					ingredientListSlot.setElement(element);
 					addRenderElement(ingredientListSlot);
 				} else {

@@ -44,6 +44,7 @@ public interface IInternalKeyMappings extends IJivKeyMappings {
 	IJivKeyMapping getMaxTransferRecipeBookmark();
 	IJivKeyMapping getQuickMove();
 	IJivKeyMapping getShareToChat();
+	IJivKeyMappingWithExtraModifiers getCopyIngredientName();
 
 	IJivKeyMapping getCheatOneItem();
 	IJivKeyMapping getCheatItemStack();

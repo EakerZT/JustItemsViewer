@@ -4,7 +4,7 @@
 
 This Wiki is for mod developers integrating **Just Items Viewer (JIV)**: display custom recipes, extend ingredient search, integrate container screens, and control JIV at runtime.
 
-The documentation targets **JIV 0.0.1-alpha-2 / Minecraft 26.1.2 / NeoForge 26.1.2.99 / Java 25**. The public API package is `eakerzt.jiv.api`; the bundled configuration API is `eakerzt.jiv.config.api`. Some source `@since` tags come from upstream and are not JIV release numbers.
+The documentation targets **JIV 0.0.1-alpha-3 / Minecraft 26.1.2 / NeoForge 26.1.2.99 / Java 25**. The public API package is `eakerzt.jiv.api`; the bundled configuration API is `eakerzt.jiv.config.api`. Some source `@since` tags come from upstream and are not JIV release numbers.
 
 ## Start here
 
@@ -32,10 +32,10 @@ Use the public API. Implementation classes in `common`, `library`, and `gui`, an
 
 ## Dependency and source
 
-The release is available from [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-2):
+The release is available from [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3):
 
 ```text
-io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-2
+io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-3
 ```
 
 - [Public API source](https://github.com/EakerZT/JustItemsViewer/tree/main/src/main/java/eakerzt/jiv/api)

@@ -32,6 +32,7 @@ public abstract class IngredientGridTooltipComponent<T> implements ClientTooltip
 
 	private ImmutableRect2i area = ImmutableRect2i.EMPTY;
 	private int rowOffset;
+	private int selectedIndex = -1;
 	private double mouseX;
 	private double mouseY;
 	private boolean mousePositionSet;
@@ -88,6 +89,13 @@ public abstract class IngredientGridTooltipComponent<T> implements ClientTooltip
 			int cellY = gridY + (displayRow * CELL_SIZE);
 			this.slotBackground.draw(guiGraphics, cellX, cellY);
 			drawIngredient(guiGraphics, this.ingredients.get(i), i, cellX + 1, cellY + 1, i == hoveredIndex);
+			if (i == this.selectedIndex) {
+				int color = 0xFF55FF55;
+				guiGraphics.fill(cellX, cellY, cellX + CELL_SIZE, cellY + 1, color);
+				guiGraphics.fill(cellX, cellY + CELL_SIZE - 1, cellX + CELL_SIZE, cellY + CELL_SIZE, color);
+				guiGraphics.fill(cellX, cellY + 1, cellX + 1, cellY + CELL_SIZE - 1, color);
+				guiGraphics.fill(cellX + CELL_SIZE - 1, cellY + 1, cellX + CELL_SIZE, cellY + CELL_SIZE - 1, color);
+			}
 		}
 
 		if (this.maxRowOffset > 0) {
@@ -103,6 +111,17 @@ public abstract class IngredientGridTooltipComponent<T> implements ClientTooltip
 		int y,
 		boolean hovered
 	);
+
+	/** Mark the chosen candidate independently of the mouse hover highlight. */
+	public void setSelectedIndex(int index) {
+		int next = index >= 0 && index < ingredients.size() ? index : -1;
+		if (next != selectedIndex && next >= 0) {
+			int row = next / columns;
+			if (row < rowOffset) rowOffset = row;
+			else if (row >= rowOffset + visibleRows) rowOffset = Math.min(maxRowOffset, row - visibleRows + 1);
+		}
+		selectedIndex = next;
+	}
 
 	public void setMousePosition(double mouseX, double mouseY) {
 		this.mouseX = mouseX;

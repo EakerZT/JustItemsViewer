@@ -18,7 +18,7 @@ public class TestClientConfig implements IClientConfig {
 	private final IConfigValue<Boolean> cheatToHotbarUsingHotkeysEnabled = value("cheatToHotbarUsingHotkeysEnabled", false);
 	private final IConfigValue<Boolean> showHiddenIngredients = value("showHiddenIngredients", false);
 	private final IConfigValue<BookmarkAddPosition> bookmarkAddPosition = value("bookmarkAddPosition", BookmarkAddPosition.END);
-	private final IConfigValue<Boolean> bookmarkOutputAsRecipe = value("bookmarkOutputAsRecipe", true);
+	private final IConfigValue<Boolean> bookmarkEnabled = value("bookmarkEnabled", true);
 	private final IConfigValue<Boolean> bookmarkTooltipPreviewEnabled = value("bookmarkTooltipPreviewEnabled", false);
 	private final IConfigValue<Boolean> bookmarkTooltipIngredientsEnabled = value("bookmarkTooltipIngredientsEnabled", false);
 	private final IConfigValue<Boolean> holdShiftToShowBookmarkTooltipFeaturesEnabled = value("holdShiftToShowBookmarkTooltipFeaturesEnabled", true);
@@ -87,10 +87,6 @@ public class TestClientConfig implements IClientConfig {
 		return bookmarkAddPosition;
 	}
 
-	@Override
-	public IConfigValue<Boolean> bookmarkOutputAsRecipe() {
-		return bookmarkOutputAsRecipe;
-	}
 
 	@Override
 	public IConfigValue<Boolean> bookmarkTooltipPreviewEnabled() {
@@ -115,6 +111,11 @@ public class TestClientConfig implements IClientConfig {
 	@Override
 	public IConfigValue<Boolean> lookupHistoryEnabled() {
 		return lookupHistoryEnabled;
+	}
+
+	@Override
+	public IConfigValue<Boolean> bookmarkEnabled() {
+		return bookmarkEnabled;
 	}
 
 	@Override

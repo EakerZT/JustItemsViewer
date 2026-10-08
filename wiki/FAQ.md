@@ -59,7 +59,7 @@
 
 ## Maven 依赖无法解析
 
-当前版本 `0.0.1-alpha-2` 已发布到 Maven Central。核对 group ID `io.github.eakerzt`、完整 artifact ID `jiv-26.1.2-neoforge` 和版本号，并确认声明了 `mavenCentral()`。若 Gradle 曾缓存发布前的解析失败，可使用 `--refresh-dependencies` 重新解析；还需确认未启用离线模式且网络能够访问 Maven Central。完整配置见[快速开始](Getting-Started.md)。
+当前版本 `0.0.1-alpha-3` 已发布到 Maven Central。核对 group ID `io.github.eakerzt`、完整 artifact ID `jiv-26.1.2-neoforge` 和版本号，并确认声明了 `mavenCentral()`。若 Gradle 曾缓存发布前的解析失败，可使用 `--refresh-dependencies` 重新解析；还需确认未启用离线模式且网络能够访问 Maven Central。完整配置见[快速开始](Getting-Started.md)。
 
 ## 示例是否包含完整机器实现？
 

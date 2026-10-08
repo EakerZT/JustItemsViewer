@@ -1,0 +1,20 @@
+{
+  "jiv_config.config.name": "名称：%s",
+  "jiv_config.config.description": "说明：%s",
+  "jiv_config.config.valueValues": "有效值：%s",
+  "jiv_config.config.defaultValue": "默认值：%s",
+  "jiv_config.config.requiresWorldRestart": "需要重新进入世界才能生效。",
+  "jiv_config.config.requiresGameRestart": "需要重启游戏才能生效。",
+  "jiv_config.config.fileWatcher": "文件监视",
+  "jiv_config.config.fileWatcher.description": "控制配置文件自动监视和重新加载的时机。",
+  "jiv_config.config.fileWatcher.enabled": "自动监视文件",
+  "jiv_config.config.fileWatcher.enabled.description": "自动监视配置文件，并在文件被游戏外部修改时重新加载。",
+  "jiv_config.config.fileWatcher.changeSettlingDelayMilliseconds": "变更稳定等待时间",
+  "jiv_config.config.fileWatcher.changeSettlingDelayMilliseconds.description": "最后一次文件系统事件发生后，等待指定毫秒数再重新加载修改过的配置文件。",
+  "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds": "缺失目录重试间隔",
+  "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds.description": "尝试监视尚不存在的配置目录时的重试间隔，单位为毫秒。",
+  "jiv_config.config.logging": "日志",
+  "jiv_config.config.logging.description": "控制 JIV 配置系统的可选诊断日志。",
+  "jiv_config.config.logging.logUntranslatedKeys": "记录未翻译的键",
+  "jiv_config.config.logging.logUntranslatedKeys.description": "记录当前语言中缺失的分类和配置值翻译键。开发环境中默认启用。"
+}

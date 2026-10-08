@@ -12,13 +12,13 @@ import eakerzt.jiv.common.config.IIngredientGridConfig;
 import eakerzt.jiv.common.gui.JivGuiColors;
 import eakerzt.jiv.common.gui.JivGuiColors.GuiColor;
 import eakerzt.jiv.common.input.IInternalKeyMappings;
+import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.common.transfer.RecipeTransferService;
 import eakerzt.jiv.common.util.ImmutablePoint2i;
 import eakerzt.jiv.common.util.ImmutableRect2i;
 import eakerzt.jiv.common.util.MathUtil;
 import eakerzt.jiv.gui.bookmarks.BookmarkList;
 import eakerzt.jiv.gui.bookmarks.IBookmark;
-import eakerzt.jiv.gui.elements.IconButton;
 import eakerzt.jiv.gui.input.IClickableIngredientInternal;
 import eakerzt.jiv.gui.input.IDragHandler;
 import eakerzt.jiv.gui.input.IDraggableIngredientInternal;
@@ -27,7 +27,6 @@ import eakerzt.jiv.gui.input.IRecipeFocusSource;
 import eakerzt.jiv.common.input.IUserInputHandler;
 import eakerzt.jiv.common.input.MouseUtil;
 import eakerzt.jiv.gui.input.handlers.CombinedDragHandler;
-import eakerzt.jiv.common.input.handlers.CombinedInputHandler;
 import eakerzt.jiv.gui.input.handlers.NullDragHandler;
 import eakerzt.jiv.gui.input.handlers.NullInputHandler;
 import eakerzt.jiv.gui.input.handlers.ProxyDragHandler;
@@ -37,7 +36,6 @@ import eakerzt.jiv.gui.overlay.ingredients.IIngredientGridSource;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientGridLayout;
 import eakerzt.jiv.gui.overlay.IScreenPropertiesUpdater;
 import eakerzt.jiv.gui.overlay.GuiPropertiesCache;
-import eakerzt.jiv.gui.overlay.bookmarks.history.LookupHistoryButtonController;
 import eakerzt.jiv.gui.overlay.bookmarks.history.LookupHistoryOverlay;
 import eakerzt.jiv.gui.overlay.elements.IElement;
 import net.minecraft.client.Minecraft;
@@ -54,14 +52,12 @@ import java.util.stream.Stream;
 public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	private static final int BORDER_MARGIN = 6;
 	private static final int INNER_PADDING = 2;
-	private static final int BUTTON_SIZE = 20;
 	private static final int LOOKUP_HISTORY_BOTTOM_PADDING = BORDER_MARGIN;
 	private static final int LOOKUP_HISTORY_PADDING_EXTRA = LOOKUP_HISTORY_BOTTOM_PADDING - INNER_PADDING;
-	private static final int BUTTON_GAP = 2;
-	private static final int BUTTON_ROW_WIDTH = BUTTON_SIZE * 2 + BUTTON_GAP;
 
 	// input
 	private final BookmarkDragManager bookmarkDragManager;
+	private final BookmarkGroupController groupController;
 
 	// areas
 	private final GuiPropertiesCache<Screen> guiPropertiesCache;
@@ -69,8 +65,6 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	// display elements
 	private final IngredientGridWithNavigation contents;
 	private final LookupHistoryOverlay lookupHistoryOverlay;
-	private final IconButton bookmarkButton;
-	private final IconButton historyButton;
 
 	// data
 	private final BookmarkList bookmarkList;
@@ -95,9 +89,11 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 		this.toggleState = toggleState;
 		this.clientConfig = clientConfig;
 		this.bookmarkListConfig = bookmarkListConfig;
-		this.bookmarkButton = new IconButton(new BookmarkButtonController(this, bookmarkList, toggleState, keyBindings));
-		this.historyButton = new IconButton(new LookupHistoryButtonController(clientConfig));
 		this.contents = contents;
+		var workspaceNavigation = new eakerzt.jiv.gui.bookmarks.BookmarkWorkspaceNavigation(bookmarkList, contents.getPageDelegate(), contents::updateLayoutToFirstPage);
+		this.contents.configureNavigation(workspaceNavigation, workspaceNavigation::label);
+		this.contents.setNavigationLeadingButton(new eakerzt.jiv.gui.elements.IconButton(new BookmarkModeButtonController(bookmarkList)));
+		this.groupController = new BookmarkGroupController(bookmarkList,contents,this);
 		this.lookupHistoryOverlay = lookupHistoryOverlay;
 		this.guiPropertiesCache = new GuiPropertiesCache<>(
 			screen -> screenHelper.getGuiProperties(screen)
@@ -105,8 +101,13 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 		);
 		this.bookmarkDragManager = new BookmarkDragManager(this);
 		this.previewTooltipController = new BookmarkPreviewTooltipController(this, recipeTransferService);
+		toggleState.setBookmarkEnabled(clientConfig.bookmarkEnabled().get());
+		Internal.registerRuntimeListenerRemoval(clientConfig.bookmarkEnabled().addListener(value -> {
+			toggleState.setBookmarkEnabled(clientConfig.bookmarkEnabled().get());
+			markScreenPropertiesDirty();
+		}));
+		Internal.registerRuntimeListenerRemoval(toggleState.addBookmarkEnabledListener(value -> clientConfig.bookmarkEnabled().set(value)));
 		bookmarkList.addSourceListChangedListener(() -> {
-			toggleState.setBookmarkEnabled(!bookmarkList.isEmpty());
 			markScreenPropertiesDirty();
 		});
 		lookupHistoryOverlay.getLookupHistory().addSourceListChangedListener(this::markScreenPropertiesDirty);
@@ -172,14 +173,14 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	private void updateBounds(IGuiProperties guiProperties, Set<ImmutableRect2i> guiExclusionAreas) {
 		ImmutableRect2i displayArea = getDisplayArea(guiProperties);
 		ImmutablePoint2i mouseExclusionArea = this.guiPropertiesCache.getMouseExclusionArea();
-		ImmutableRect2i availableContentsArea = displayArea.cropBottom(BUTTON_SIZE + INNER_PADDING);
+		ImmutableRect2i availableContentsArea = displayArea;
 		Optional<ImmutableRect2i> historyArea = Optional.empty();
 		if (clientConfig.lookupHistoryEnabled().get() && lookupHistoryOverlay.isDisplayedOnThisSide()) {
 			int lookupHistoryDisplayHeight = lookupHistoryOverlay.getDisplayHeight();
 			if (lookupHistoryDisplayHeight > 0) {
 				ImmutableRect2i area = displayArea
 					.insetBy(BORDER_MARGIN)
-					.cropBottom(BUTTON_SIZE + LOOKUP_HISTORY_BOTTOM_PADDING)
+					.cropBottom(LOOKUP_HISTORY_BOTTOM_PADDING)
 					.keepBottom(lookupHistoryDisplayHeight);
 				historyArea = Optional.of(area);
 				availableContentsArea = cropBottomTo(
@@ -189,7 +190,8 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 			}
 		}
 		IElement<?> pageAnchorElement = this.contents.getPageAnchorElement();
-		this.contents.updateBounds(availableContentsArea, guiExclusionAreas, mouseExclusionArea);
+        this.contents.updateBounds(availableContentsArea.cropLeft(BookmarkGroupController.GUTTER), guiExclusionAreas, mouseExclusionArea);
+        this.bookmarkList.setLayoutColumns(this.contents.getIngredientGridArea().width() / IngredientGridLayout.INGREDIENT_WIDTH);
 		this.contents.updateLayoutKeepingPageAnchorVisible(pageAnchorElement);
 
 		historyArea.ifPresent(area -> {
@@ -197,27 +199,6 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 			this.lookupHistoryOverlay.updateLayout();
 		});
 
-		ImmutableRect2i insetDisplayArea = displayArea.insetBy(BORDER_MARGIN);
-		if (insetDisplayArea.getWidth() < BUTTON_ROW_WIDTH || insetDisplayArea.getHeight() < BUTTON_SIZE) {
-			this.bookmarkButton.updateBounds(ImmutableRect2i.EMPTY);
-			this.historyButton.updateBounds(ImmutableRect2i.EMPTY);
-		} else if (contents.hasRoom() && this.contents.getBackgroundArea().getWidth() >= BUTTON_ROW_WIDTH) {
-			ImmutableRect2i contentsArea = this.contents.getBackgroundArea();
-			ImmutableRect2i bookmarkButtonArea = insetDisplayArea
-				.matchWidthAndX(contentsArea)
-				.keepBottom(BUTTON_SIZE)
-				.keepLeft(BUTTON_SIZE);
-			this.bookmarkButton.updateBounds(bookmarkButtonArea);
-			ImmutableRect2i historyButtonArea = bookmarkButtonArea.moveRight(BUTTON_GAP + BUTTON_SIZE);
-			this.historyButton.updateBounds(historyButtonArea);
-		} else {
-			ImmutableRect2i bookmarkButtonArea = insetDisplayArea
-				.keepBottom(BUTTON_SIZE)
-				.keepLeft(BUTTON_SIZE);
-			this.bookmarkButton.updateBounds(bookmarkButtonArea);
-			ImmutableRect2i historyButtonArea = bookmarkButtonArea.moveRight(BUTTON_GAP + BUTTON_SIZE);
-			this.historyButton.updateBounds(historyButtonArea);
-		}
 	}
 
 	private ImmutableRect2i alignLookupHistoryArea(ImmutableRect2i lookupHistoryArea) {
@@ -268,16 +249,15 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	public void drawForeground(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY, float partialTicks) {
 		updateScreenPropertiesIfDirty();
 		if (isListDisplayed()) {
-			this.bookmarkDragManager.updateDrag(mouseX, mouseY);
+			this.groupController.updateGroupDrag(mouseX, mouseY);
+            this.bookmarkDragManager.updateDrag(mouseX, mouseY);
 			drawPageFlipEdgeHighlights(guiGraphics, mouseX, mouseY);
+			this.groupController.drawRecipeBackground(guiGraphics, mouseX, mouseY);
 			this.contents.drawForeground(minecraft, guiGraphics, mouseX, mouseY, partialTicks);
+			this.groupController.draw(guiGraphics,mouseX,mouseY);
 		}
 		if (guiPropertiesCache.hasValidScreen() && toggleState.isOverlayEnabled()) {
 			this.lookupHistoryOverlay.draw(minecraft, guiGraphics, mouseX, mouseY, partialTicks);
-		}
-		if (this.guiPropertiesCache.hasValidScreen()) {
-			this.bookmarkButton.draw(guiGraphics, mouseX, mouseY, partialTicks);
-			this.historyButton.draw(guiGraphics, mouseX, mouseY, partialTicks);
 		}
 	}
 
@@ -337,20 +317,15 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 		if (!this.bookmarkDragManager.drawDraggedItem(guiGraphics, mouseX, mouseY)) {
 			if (isListDisplayed() && !previewTooltipController.isVisible()) {
 				this.contents.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
+				this.groupController.drawTooltip(guiGraphics,mouseX,mouseY);
 			}
 			if (guiPropertiesCache.hasValidScreen() && toggleState.isOverlayEnabled()) {
 				this.lookupHistoryOverlay.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
 			}
 		}
-		if (this.guiPropertiesCache.hasValidScreen()) {
-			bookmarkButton.drawTooltips(guiGraphics, mouseX, mouseY);
-			historyButton.drawTooltips(guiGraphics, mouseX, mouseY);
-		}
 	}
 
 	public void tick() {
-		this.bookmarkButton.tick();
-		this.historyButton.tick();
 		if (isListDisplayed()) {
 			this.contents.tick();
 		}
@@ -405,28 +380,27 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 			.orElse(null);
 	}
 
-	public IUserInputHandler createInputHandler() {
-		final IUserInputHandler bookmarkButtonInputHandler = this.bookmarkButton.createInputHandler();
-		final IUserInputHandler historyButtonInputHandler = this.historyButton.createInputHandler();
+    public IUserInputHandler createGroupInputHandler() {
+        return new ProxyInputHandler(() -> isListDisplayed() ? groupController : NullInputHandler.INSTANCE);
+    }
 
-		final IUserInputHandler buttonInputHandler = new CombinedInputHandler(
-			"BookmarkOverlayButton",
-			bookmarkButtonInputHandler,
-			historyButtonInputHandler
-		);
-
-		final IUserInputHandler displayedInputHandler = new CombinedInputHandler(
-			"BookmarkOverlay",
-			this.contents.createInputHandler(),
-			buttonInputHandler
-		);
-
-		return new ProxyInputHandler(() -> {
-			if (isListDisplayed()) {
-				return displayedInputHandler;
+	public IUserInputHandler createGroupScrollInputHandler() {
+		return new IUserInputHandler() {
+			@Override
+			public Optional<IUserInputHandler> handleUserInput(Screen screen, IGuiProperties properties, UserInput input, IInternalKeyMappings keys) {
+				return Optional.empty();
 			}
-			return buttonInputHandler;
-		});
+
+			@Override
+			public Optional<IUserInputHandler> handleMouseScrolled(double x, double y, double dx, double dy) {
+				return isListDisplayed() && !previewTooltipController.isMouseOver(x, y) ? groupController.handleMouseScrolled(x, y, dx, dy) : Optional.empty();
+			}
+		};
+	}
+
+	public IUserInputHandler createInputHandler() {
+		final IUserInputHandler displayedInputHandler = this.contents.createInputHandler();
+		return new ProxyInputHandler(() -> isListDisplayed() ? displayedInputHandler : NullInputHandler.INSTANCE);
 	}
 
 	public IUserInputHandler createDeleteItemInputHandler() {
@@ -443,9 +417,10 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	public IDragHandler createDragHandler() {
 		final IDragHandler lookupHistoryDragHandler = this.lookupHistoryOverlay.createDragHandler();
 		final IDragHandler combinedDragHandlers = new CombinedDragHandler(
+            this.groupController.createDragHandler(),
+			this.bookmarkDragManager.createDragHandler(),
 			this.contents.createDragHandler(),
-			lookupHistoryDragHandler,
-			this.bookmarkDragManager.createDragHandler()
+			lookupHistoryDragHandler
 		);
 
 		return new ProxyDragHandler(() -> {
@@ -469,30 +444,90 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 
 	public List<BookmarkDragTarget> createBookmarkDragTargets(IBookmark draggedBookmark) {
 		updateScreenPropertiesIfDirty();
-		List<IElement<?>> elements = this.bookmarkList.getElements();
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(this.contents.getAllSlots(), elements, draggedBookmark);
-		List<IElement<?>> pageElements = this.contents.getPageElements();
-		if (pageElements.isEmpty()) {
-			return targets;
-		}
+		List<IElement<?>> elements = this.bookmarkList.getBookmarkElements();
+        List<BookmarkDragTarget> targets = new java.util.ArrayList<>(
+            BookmarkDragTarget.createSlotTargets(contents.getAllSlots(), elements, draggedBookmark));
+        List<IBookmark> pageBookmarks = contents.getPageElements().stream()
+            .flatMap(e -> e.getBookmark().stream()).toList();
+        if (pageBookmarks.isEmpty()) return targets;
+        int firstIndex = BookmarkDragTarget.ownerIndex(elements, pageBookmarks.getFirst());
+        int lastIndex = BookmarkDragTarget.ownerIndex(elements, pageBookmarks.getLast());
+        if (firstIndex < 0 || lastIndex < 0) return targets;
 
-		// Use the current page's range, including hidden bookmarks, even after navigating during a drag.
-		int firstIndex = elements.indexOf(pageElements.getFirst());
-		int lastIndex = elements.indexOf(pageElements.getLast());
 		if (canFlipPage()) {
 			targets.add(new BookmarkDragTarget(this.contents.getNextPageButtonArea(), (lastIndex + 1) % elements.size()));
 			targets.add(new BookmarkDragTarget(this.contents.getBackButtonArea(), Math.floorMod(firstIndex - 1, elements.size())));
 		}
 
-		// Trailing empty slots and background padding place the bookmark at the end of this page.
-		targets.add(new BookmarkDragTarget(this.contents.getSlotBackgroundArea(), lastIndex));
+		// The lower edge of the final subgroup is an explicit outside-group destination.
+        if (lastIndex == elements.size() - 1 && bookmarkList.state(pageBookmarks.getLast()).group != 0) {
+            int bottom = contents.getAllSlots().stream().filter(slot -> !slot.isBlocked() && slot.getOptionalElement().isPresent())
+                .mapToInt(slot -> slot.getArea().y() + slot.getArea().height()).max().orElse(0);
+            var area = contents.getSlotBackgroundArea();
+            int top = Math.max(area.y(), bottom - 4);
+            targets.addFirst(new BookmarkDragTarget(new ImmutableRect2i(area.x(), top, area.width(), Math.max(0, area.y() + area.height() - top)), lastIndex, 0));
+            targets.add(new BookmarkDragTarget(area, lastIndex, 0));
+        } else targets.add(new BookmarkDragTarget(contents.getSlotBackgroundArea(), lastIndex));
 		return targets;
 	}
+
+    public record DraggedCell(eakerzt.jiv.api.ingredients.ITypedIngredient<?> ingredient, int x, int y) {}
+
+    public List<DraggedCell> captureDraggedCells(IBookmark bookmark, eakerzt.jiv.gui.bookmarks.@org.jspecify.annotations.Nullable BookmarkCell<?> source) {
+        List<DraggedCell> cells = new java.util.ArrayList<>();
+        int firstX = 0, firstY = 0;
+        for (var slot : contents.getAllSlots()) {
+            if (slot.isBlocked()) continue;
+            var element = slot.getOptionalElement().orElse(null);
+            if (element == null || element.getBookmark().orElse(null) != bookmark) continue;
+            if (source != null && (!(element instanceof eakerzt.jiv.gui.bookmarks.BookmarkCell<?> cell) || cell.slot != source.slot)) continue;
+            var area = slot.getRenderArea();
+            if (cells.isEmpty()) { firstX = area.x(); firstY = area.y(); }
+            cells.add(new DraggedCell(element.getTypedIngredient(), area.x() - firstX, area.y() - firstY));
+        }
+        return cells;
+    }
+
+    public void beginDrag(IBookmark bookmark, int inputSlot) {
+        contents.setKeepPositionOnRelayout(inputSlot >= 0);
+        bookmarkList.beginDrag(bookmark, inputSlot);
+    }
+    public void finishDrag(boolean commit) {
+        bookmarkList.finishDrag(commit);
+        // Flush the final input order while the viewport is still fixed.
+        contents.setKeepPositionOnRelayout(false);
+    }
+
+    public boolean previewDrag(IBookmark bookmark, eakerzt.jiv.gui.bookmarks.@org.jspecify.annotations.Nullable BookmarkCell<?> source, double x, double y) {
+        if (source != null) return moveRecipeInput(source, x, y);
+        for (BookmarkDragTarget target : createBookmarkDragTargets(bookmark)) {
+            if (target.area().contains(x, y)) {
+                if (target.group() >= 0) bookmarkList.moveBookmarkToGroup(bookmark, target.index(), target.group());
+                else bookmarkList.moveBookmark(bookmark, target.index());
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public boolean moveRecipeInput(eakerzt.jiv.gui.bookmarks.BookmarkCell<?> source, double x, double y) {
+        for (var slot : contents.getAllSlots()) {
+            if (slot.isBlocked() || !slot.getArea().contains(x, y)) continue;
+            var element = slot.getOptionalElement().orElse(null);
+            if (element instanceof eakerzt.jiv.gui.bookmarks.BookmarkDragPlaceholder<?> placeholder) element = placeholder.source();
+            if (element instanceof eakerzt.jiv.gui.bookmarks.BookmarkCell<?> target && source.bookmark != null && target.bookmark == source.bookmark && target.role == eakerzt.jiv.api.recipe.RecipeIngredientRole.INPUT) {
+                if (source.slot == target.slot) return true;
+                return bookmarkList.moveRecipeInput(source.bookmark, source.slot, target.slot);
+            }
+        }
+        return false;
+    }
 
 	public void moveBookmark(IBookmark bookmark, int index) {
 		this.bookmarkList.moveBookmark(bookmark, index);
 		// Keep the dropped bookmark visible when its visibility and the cursor's slot are restored.
-		this.contents.setPageAnchorElement(bookmark.getElement());
+		this.bookmarkList.getElements().stream().filter(e->e.getBookmark().filter(b->b==bookmark).isPresent()).findFirst()
+            .ifPresent(this.contents::setPageAnchorElement);
 	}
 
 	public IPaged getPageDelegate() {

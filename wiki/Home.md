@@ -6,11 +6,11 @@ Integrate JIV with your NeoForge mod: recipes, ingredients, GUIs, transfer, sear
 
 为 NeoForge 模组接入 JIV：配方、原料、界面、配方转移、搜索、运行时操作与配置。
 
-**JIV 0.0.1-alpha-2 · Minecraft 26.1.2 · NeoForge 26.1.2.99 · Java 25**
+**JIV 0.0.1-alpha-3 · Minecraft 26.1.2 · NeoForge 26.1.2.99 · Java 25**
 
 ## Maven Central / 获取依赖
 
-JIV is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-2). Add the following dependencies to your NeoForge ModDevGradle project.
+JIV is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3). Add the following dependencies to your NeoForge ModDevGradle project.
 
 JIV 已发布到 Maven Central。在 NeoForge ModDevGradle 工程中添加以下依赖即可获取：
 
@@ -20,8 +20,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-2")
-    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-2")
+    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-3")
+    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-3")
 }
 ```
 

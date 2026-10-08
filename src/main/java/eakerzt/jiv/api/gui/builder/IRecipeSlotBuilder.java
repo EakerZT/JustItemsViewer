@@ -123,9 +123,9 @@ public interface IRecipeSlotBuilder extends IIngredientAcceptor<IRecipeSlotBuild
 	IRecipeSlotBuilder setNonConsumed(boolean nonConsumed);
 
 	/** Sets a finite probability in [0,1] and enables its native label and tooltip.
-	 * Supports item/fluid inputs and outputs. A probability of one hides the compact label,
-	 * but keeps the tooltip. Off by default; each call enables it again.
-	 * Reserve six pixels above the slot for the compact label; the tooltip keeps full precision.
+	 * Supports item/fluid inputs and outputs. A probability of one hides both the compact label
+	 * and the probability tooltip. Off by default; each call enables it again.
+	 * The compact label is right-aligned inside the slot's top-right corner; the tooltip keeps full precision.
 	 * Does not replace custom overlays or item/fluid counts. Empty slots have no marker or metadata tooltip.
 	 * This does not perform consumption, production or random rolls.
 	 * @throws IllegalArgumentException if chance is non-finite or outside [0,1]

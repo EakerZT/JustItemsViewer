@@ -51,7 +51,7 @@ final class IngredientGridPageState {
 	}
 
 	static int findIndexOfIngredientElement(@Nullable IElement<?> element, List<IElement<?>> ingredientList) {
-		if (element == null) {
+		if (element == null || element.isEmptySlot()) {
 			return -1;
 		}
 		for (int i = 0; i < ingredientList.size(); i++) {
@@ -77,6 +77,9 @@ final class IngredientGridPageState {
 	 * which is slower and unnecessary for keeping the user's visible page stable.
 	 */
 	static boolean isSameIngredientElement(IElement<?> first, IElement<?> second) {
+		if (first.isEmptySlot() || second.isEmptySlot()) {
+			return false;
+		}
 		if (first == second) {
 			return true;
 		}

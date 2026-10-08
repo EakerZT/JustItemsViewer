@@ -23,7 +23,8 @@ public interface IClientConfig {
 
 	IConfigValue<BookmarkAddPosition> bookmarkAddPosition();
 
-	IConfigValue<Boolean> bookmarkOutputAsRecipe();
+	IConfigValue<Boolean> bookmarkEnabled();
+
 
 	IConfigValue<Boolean> bookmarkTooltipPreviewEnabled();
 

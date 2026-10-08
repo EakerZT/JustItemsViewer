@@ -118,14 +118,14 @@
   "jiv.config.client.advanced.itemBlacklist": "Черния списък с съставки",
   "jiv.config.client.advanced.itemBlacklist.description": "Списък на съставките, които не трябва да се показват в наслагването на списъка с съставки. Формат: modId[:name[:meta]].Режимът на скриване на съставки автоматично ще добави или премахне записи тук.",
   "jiv.config.modIdFormat.modName.modNameFormat": "Формат на име на мод",
-  "jiv.config.modIdFormat.modName.modNameFormat.description": "Как името на мода трябва да бъде форматирано в подхода на Jei Guis.Оставете празно, за да деактивирате.",
+  "jiv.config.modIdFormat.modName.modNameFormat.description": "Как името на мода трябва да бъде форматирано в подхода на JIV Guis.Оставете празно, за да деактивирате.",
   "jiv.config.client.advanced.maxColumns": "Максимална ширина на наслагване",
   "jiv.config.client.advanced.maxColumns.description": "Максималната ширина на списъка с съставки и отметки.",
   "jiv.config.client.cheating.giveMode": "Дайте режим",
   "jiv.config.client.cheating.giveMode.description": "Изберете дали JIV трябва да даде на съставките директно на инвентара или да ги вземете с мишката.",
 
   "_comment": "Hide Ingredients Mode",
-  "gui.jiv.editMode.description": "Jei скрий режим на съставки:",
+  "gui.jiv.editMode.description": "JIV скрий режим на съставки:",
   "gui.jiv.editMode.description.hide": "%s да се скрие",
   "gui.jiv.editMode.description.hide.wild": "%sда се скрие от Wildcard",
 

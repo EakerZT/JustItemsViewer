@@ -14,7 +14,7 @@
   "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds": "Missing Directory Retry Interval",
   "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds.description": "Milliseconds between attempts to start watching config directories that do not exist yet.",
   "jiv_config.config.logging": "Logging",
-  "jiv_config.config.logging.description": "Controls optional MezzConfig diagnostic logging.",
+  "jiv_config.config.logging.description": "Controls optional JIV Config diagnostic logging.",
   "jiv_config.config.logging.logUntranslatedKeys": "Log Untranslated Keys",
   "jiv_config.config.logging.logUntranslatedKeys.description": "Log category and value localization keys that are missing from the active language. Enabled by default in development environments."
 }

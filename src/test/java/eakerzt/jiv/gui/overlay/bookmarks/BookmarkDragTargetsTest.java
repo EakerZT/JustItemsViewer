@@ -1,6 +1,10 @@
 package eakerzt.jiv.gui.overlay.bookmarks;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import com.mojang.serialization.Codec;
+
 import eakerzt.jiv.api.gui.drawable.IDrawable;
 import eakerzt.jiv.api.helpers.ICodecHelper;
 import eakerzt.jiv.api.helpers.IGuiHelper;
@@ -21,16 +25,15 @@ import eakerzt.jiv.gui.overlay.elements.IElement;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientGridTooltipHelper;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientListSlot;
 import eakerzt.jiv.gui.util.FocusUtil;
+
 import net.minecraft.core.RegistryAccess;
+
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class BookmarkDragTargetsTest {
 	private static final int SLOT_SIZE = 18;
@@ -45,11 +48,13 @@ public class BookmarkDragTargetsTest {
 		List<IngredientListSlot> slots = List.of(occupiedSlot(0, first), occupiedSlot(1, second));
 
 		for (FakeBookmark dragged : List.of(earlierPage, laterPage)) {
-			List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, elements, dragged);
-			assertEquals(List.of(
-				new BookmarkDragTarget(slots.get(0).getArea(), 1),
-				new BookmarkDragTarget(slots.get(1).getArea(), 2)
-			), targets);
+			List<BookmarkDragTarget> targets =
+					BookmarkDragTarget.createSlotTargets(slots, elements, dragged);
+			assertEquals(
+					List.of(
+							new BookmarkDragTarget(slots.get(0).getArea(), 1),
+							new BookmarkDragTarget(slots.get(1).getArea(), 2)),
+					targets);
 		}
 	}
 
@@ -58,9 +63,12 @@ public class BookmarkDragTargetsTest {
 		FakeBookmark dragged = new FakeBookmark();
 		FakeBookmark first = new FakeBookmark();
 		FakeBookmark last = new FakeBookmark();
-		List<IngredientListSlot> slots = List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
+		List<IngredientListSlot> slots =
+				List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
 
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, elements(dragged, first, last), dragged);
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(
+						slots, elements(dragged, first, last), dragged);
 
 		assertEquals(new BookmarkDragTarget(slots.get(1).getArea(), 1), targets.get(1));
 	}
@@ -70,9 +78,12 @@ public class BookmarkDragTargetsTest {
 		FakeBookmark first = new FakeBookmark();
 		FakeBookmark last = new FakeBookmark();
 		FakeBookmark dragged = new FakeBookmark();
-		List<IngredientListSlot> slots = List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
+		List<IngredientListSlot> slots =
+				List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
 
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, elements(first, last, dragged), dragged);
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(
+						slots, elements(first, last, dragged), dragged);
 
 		assertEquals(new BookmarkDragTarget(slots.get(1).getArea(), 1), targets.get(1));
 	}
@@ -81,15 +92,18 @@ public class BookmarkDragTargetsTest {
 	public void leadingGapsInsertBeforeTheFirstBookmark() {
 		FakeBookmark first = new FakeBookmark();
 		FakeBookmark dragged = new FakeBookmark();
-		List<IngredientListSlot> slots = List.of(emptySlot(0), emptySlot(1), occupiedSlot(2, first));
+		List<IngredientListSlot> slots =
+				List.of(emptySlot(0), emptySlot(1), occupiedSlot(2, first));
 
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, elements(first, dragged), dragged);
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(slots, elements(first, dragged), dragged);
 
-		assertEquals(List.of(
-			new BookmarkDragTarget(slots.get(0).getArea(), 0),
-			new BookmarkDragTarget(slots.get(1).getArea(), 0),
-			new BookmarkDragTarget(slots.get(2).getArea(), 0)
-		), targets);
+		assertEquals(
+				List.of(
+						new BookmarkDragTarget(slots.get(0).getArea(), 0),
+						new BookmarkDragTarget(slots.get(1).getArea(), 0),
+						new BookmarkDragTarget(slots.get(2).getArea(), 0)),
+				targets);
 	}
 
 	@Test
@@ -98,7 +112,8 @@ public class BookmarkDragTargetsTest {
 		FakeBookmark dragged = new FakeBookmark();
 		List<IngredientListSlot> slots = List.of(occupiedSlot(0, first), emptySlot(1));
 
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, elements(first, dragged), dragged);
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(slots, elements(first, dragged), dragged);
 
 		assertEquals(List.of(new BookmarkDragTarget(slots.getFirst().getArea(), 0)), targets);
 	}
@@ -107,7 +122,9 @@ public class BookmarkDragTargetsTest {
 	public void pageWithNoVisibleBookmarksUsesThePageFallback() {
 		FakeBookmark dragged = new FakeBookmark();
 
-		List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(List.of(emptySlot(0)), elements(dragged), dragged);
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(
+						List.of(emptySlot(0)), elements(dragged), dragged);
 
 		assertTrue(targets.isEmpty());
 	}
@@ -118,12 +135,17 @@ public class BookmarkDragTargetsTest {
 		FakeBookmark first = new FakeBookmark();
 		FakeBookmark last = new FakeBookmark();
 		FakeBookmark dragged = new FakeBookmark();
-		List<IngredientListSlot> slots = List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
-		for (List<IBookmark> initialOrder : List.<List<IBookmark>>of(List.of(dragged, first, last), List.of(first, last, dragged))) {
+		List<IngredientListSlot> slots =
+				List.of(occupiedSlot(0, first), emptySlot(1), occupiedSlot(2, last));
+		for (List<IBookmark> initialOrder :
+				List.<List<IBookmark>>of(
+						List.of(dragged, first, last), List.of(first, last, dragged))) {
 			RecordingBookmarkConfig config = new RecordingBookmarkConfig();
-			BookmarkList bookmarks = new BookmarkList(null, null, null, null, config, null, null, null, null, null);
+			BookmarkList bookmarks =
+					new BookmarkList(null, null, null, null, config, null, null, null, null, null);
 			bookmarks.setFromConfigFile(initialOrder);
-			List<BookmarkDragTarget> targets = BookmarkDragTarget.createSlotTargets(slots, bookmarks.getElements(), dragged);
+			List<BookmarkDragTarget> targets =
+					BookmarkDragTarget.createSlotTargets(slots, bookmarks.getElements(), dragged);
 
 			bookmarks.moveBookmark(dragged, targets.get(1).index());
 
@@ -132,24 +154,81 @@ public class BookmarkDragTargetsTest {
 		}
 	}
 
+	@Test
+	public void activePlaceholderStillResolvesOwnerIndexAndBackgroundRange() {
+		FakeBookmark first = new FakeBookmark(),
+				dragged = new FakeBookmark(),
+				last = new FakeBookmark();
+		RecordingBookmarkConfig config = new RecordingBookmarkConfig();
+		BookmarkList bookmarks =
+				new BookmarkList(null, null, null, null, config, null, null, null, null, null);
+		bookmarks.setFromConfigFile(List.of(first, dragged, last));
+		bookmarks.beginDrag(dragged, -1);
+		List<IElement<?>> rendered = bookmarks.getElements();
+		assertTrue(rendered.get(1).isDragPlaceholder());
+		assertEquals(elements(first, dragged, last), bookmarks.getBookmarkElements());
+		List<IngredientListSlot> slots = List.of(emptySlot(0), emptySlot(1), emptySlot(2));
+		for (int i = 0; i < slots.size(); i++) slots.get(i).setElement(rendered.get(i));
+		List<BookmarkDragTarget> targets =
+				BookmarkDragTarget.createSlotTargets(
+						slots, bookmarks.getBookmarkElements(), dragged);
+		assertEquals(List.of(0, 1, 2), targets.stream().map(BookmarkDragTarget::index).toList());
+		assertEquals(
+				1,
+				BookmarkDragTarget.ownerIndex(
+						bookmarks.getBookmarkElements(),
+						rendered.get(1).getBookmark().orElseThrow()));
+		bookmarks.moveBookmark(dragged, targets.get(2).index());
+		bookmarks.finishDrag(true);
+		assertEquals(List.of(first, last, dragged), config.savedBookmarks);
+	}
+
+	@Test
+	public void staleOrUnknownDragIndicesCannotCrashOrChangeTheList() {
+		FakeBookmark first = new FakeBookmark(), dragged = new FakeBookmark();
+		RecordingBookmarkConfig config = new RecordingBookmarkConfig();
+		BookmarkList bookmarks =
+				new BookmarkList(null, null, null, null, config, null, null, null, null, null);
+		bookmarks.setFromConfigFile(List.of(first, dragged));
+		bookmarks.beginDrag(dragged, -1);
+		bookmarks.moveBookmark(dragged, -1);
+		bookmarks.moveBookmark(dragged, 2);
+		bookmarks.finishDrag(true);
+		assertEquals(List.of(first, dragged), config.savedBookmarks);
+	}
+
 	private static class RecordingBookmarkConfig implements IBookmarkConfig {
 		private List<IBookmark> savedBookmarks = List.of();
 
 		@Override
-		public void saveBookmarks(IRecipeManager recipeManager, IFocusFactory focusFactory, IGuiHelper guiHelper, IIngredientManager ingredientManager, RegistryAccess registryAccess, ICodecHelper codecHelper, List<IBookmark> bookmarks, Codec<IBookmark> bookmarkCodec) {
+		public void saveBookmarks(
+				IRecipeManager recipeManager,
+				IFocusFactory focusFactory,
+				IGuiHelper guiHelper,
+				IIngredientManager ingredientManager,
+				RegistryAccess registryAccess,
+				ICodecHelper codecHelper,
+				List<IBookmark> bookmarks,
+				Codec<IBookmark> bookmarkCodec) {
 			this.savedBookmarks = List.copyOf(bookmarks);
 		}
 
 		@Override
-		public void loadBookmarks(IRecipeManager recipeManager, IFocusFactory focusFactory, IGuiHelper guiHelper, IIngredientManager ingredientManager, RegistryAccess registryAccess, BookmarkList bookmarkList, ICodecHelper codecHelper, Codec<IBookmark> bookmarkCodec) {
+		public void loadBookmarks(
+				IRecipeManager recipeManager,
+				IFocusFactory focusFactory,
+				IGuiHelper guiHelper,
+				IIngredientManager ingredientManager,
+				RegistryAccess registryAccess,
+				BookmarkList bookmarkList,
+				ICodecHelper codecHelper,
+				Codec<IBookmark> bookmarkCodec) {
 			throw new UnsupportedOperationException();
 		}
 	}
 
 	private static List<IElement<?>> elements(FakeBookmark... bookmarks) {
-		return Arrays.stream(bookmarks)
-			.map(FakeBookmark::getElement)
-			.toList();
+		return Arrays.stream(bookmarks).map(FakeBookmark::getElement).toList();
 	}
 
 	private static IngredientListSlot occupiedSlot(int slotIndex, FakeBookmark bookmark) {
@@ -181,8 +260,7 @@ public class BookmarkDragTargetsTest {
 		}
 
 		@Override
-		public void setVisible(boolean visible) {
-		}
+		public void setVisible(boolean visible) {}
 	}
 
 	private static class FakeElement implements IElement<Object> {
@@ -208,12 +286,15 @@ public class BookmarkDragTargetsTest {
 		}
 
 		@Override
-		public void show(IRecipesGui recipesGui, FocusUtil focusUtil, List<RecipeIngredientRole> roles) {
-		}
+		public void show(
+				IRecipesGui recipesGui, FocusUtil focusUtil, List<RecipeIngredientRole> roles) {}
 
 		@Override
-		public void getTooltip(JivTooltip tooltip, IngredientGridTooltipHelper tooltipHelper, IIngredientRenderer<Object> ingredientRenderer, IIngredientHelper<Object> ingredientHelper) {
-		}
+		public void getTooltip(
+				JivTooltip tooltip,
+				IngredientGridTooltipHelper tooltipHelper,
+				IIngredientRenderer<Object> ingredientRenderer,
+				IIngredientHelper<Object> ingredientHelper) {}
 
 		@Override
 		public boolean isVisible() {
@@ -221,7 +302,6 @@ public class BookmarkDragTargetsTest {
 		}
 
 		@Override
-		public void tick() {
-		}
+		public void tick() {}
 	}
 }

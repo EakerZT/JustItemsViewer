@@ -6,16 +6,18 @@ import eakerzt.jiv.api.ingredients.ITypedIngredient;
 import eakerzt.jiv.api.runtime.IIngredientManager;
 import eakerzt.jiv.common.Internal;
 import eakerzt.jiv.common.config.IClientConfig;
+import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.common.util.ImmutableRect2i;
 import eakerzt.jiv.gui.input.IDragHandler;
 import eakerzt.jiv.gui.input.IDraggableIngredientInternal;
-import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.gui.overlay.elements.IElement;
+
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.world.item.ItemStack;
+
 import org.jspecify.annotations.Nullable;
 
 import java.util.Optional;
@@ -52,29 +54,44 @@ public class BookmarkDragManager {
 		}
 	}
 
-	private <V> boolean handleClickIngredient(IDraggableIngredientInternal<V> clicked, UserInput input) {
+	private <V> boolean handleClickIngredient(
+			IDraggableIngredientInternal<V> clicked, UserInput input) {
 		IElement<V> element = clicked.getElement();
-		return element
-			.getBookmark()
-			.map(bookmark -> {
-				ITypedIngredient<V> ingredient = clicked.getTypedIngredient();
-				IIngredientType<V> type = ingredient.getType();
+		return element.getBookmark()
+				.map(
+						bookmark -> {
+							ITypedIngredient<V> ingredient = clicked.getTypedIngredient();
+							IIngredientType<V> type = ingredient.getType();
 
-				IIngredientManager ingredientManager = Internal.getJivRuntime().getIngredientManager();
-				IIngredientRenderer<V> ingredientRenderer = ingredientManager.getIngredientRenderer(type);
-				ImmutableRect2i clickedArea = clicked.getArea();
-				this.bookmarkDrag = new BookmarkDrag<>(
-					bookmarkOverlay,
-					ingredientRenderer,
-					ingredient,
-					bookmark,
-					input.getMouseX(),
-					input.getMouseY(),
-					clickedArea
-				);
-				return true;
-			})
-			.orElse(false);
+							IIngredientManager ingredientManager =
+									Internal.getJivRuntime().getIngredientManager();
+							IIngredientRenderer<V> ingredientRenderer =
+									ingredientManager.getIngredientRenderer(type);
+							ImmutableRect2i clickedArea = clicked.getArea();
+							this.bookmarkDrag =
+									new BookmarkDrag<>(
+											bookmarkOverlay,
+											ingredientRenderer,
+											ingredient,
+											bookmark,
+											input.getMouseX(),
+											input.getMouseY(),
+											clickedArea,
+											element
+																	instanceof
+																	eakerzt.jiv.gui.bookmarks
+																							.BookmarkCell<
+																					?>
+																			cell
+															&& cell.role
+																	== eakerzt.jiv.api.recipe
+																			.RecipeIngredientRole
+																			.INPUT
+													? cell
+													: null);
+							return true;
+						})
+				.orElse(false);
 	}
 
 	public IDragHandler createDragHandler() {
@@ -85,7 +102,10 @@ public class BookmarkDragManager {
 		@Override
 		public Optional<IDragHandler> handleDragStart(Screen screen, UserInput input) {
 			IClientConfig clientConfig = Internal.getClientConfigs().getClientConfig();
-			if (!clientConfig.dragToRearrangeBookmarksEnabled().get()) {
+			if (!clientConfig.dragToRearrangeBookmarksEnabled().get()
+					|| !Minecraft.getInstance().hasControlDown()
+					|| Minecraft.getInstance().hasShiftDown()
+					|| Minecraft.getInstance().hasAltDown()) {
 				stopDrag();
 				return Optional.empty();
 			}
@@ -96,17 +116,17 @@ public class BookmarkDragManager {
 				return Optional.empty();
 			}
 
-			return bookmarkOverlay.getDraggableIngredientUnderMouse(input.getMouseX(), input.getMouseY())
-				.findFirst()
-				.flatMap(clicked -> {
-					ItemStack mouseItem = player.containerMenu.getCarried();
-					if (mouseItem.isEmpty() &&
-						handleClickIngredient(clicked, input)
-					) {
-						return Optional.of(this);
-					}
-					return Optional.empty();
-				});
+			return bookmarkOverlay
+					.getDraggableIngredientUnderMouse(input.getMouseX(), input.getMouseY())
+					.findFirst()
+					.flatMap(
+							clicked -> {
+								ItemStack mouseItem = player.containerMenu.getCarried();
+								if (mouseItem.isEmpty() && handleClickIngredient(clicked, input)) {
+									return Optional.of(this);
+								}
+								return Optional.empty();
+							});
 		}
 
 		@Override

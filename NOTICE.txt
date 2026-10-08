@@ -40,3 +40,11 @@ Based on the original Color Thief JavaScript version by Lokesh Dhakar:
 http://lokeshdhakar.com/projects/color-thief/
 The original attribution headers remain in the source. JIV changes to these
 files are limited to the Java package migration.
+
+GTNH NEI bookmark visuals:
+assets/jiv/textures/gui/gtnh-nei/craftingtree.png is reproduced unchanged from
+GTNewHorizons/NotEnoughItems, revision 35f5400ecbf802bf9bdcd602c9b04c9d7d2614ff.
+GTNH Modifications Copyright (c) 2019-2024 mitchej123 and the GTNH Team.
+This asset is licensed under LGPL-3.0-or-later. Its license and attribution are
+included beside the texture. The JIV Java implementation adapts the behavior
+using JIV's own APIs; it does not include the upstream Java sources.

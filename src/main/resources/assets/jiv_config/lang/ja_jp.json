@@ -14,7 +14,7 @@
   "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds": "存在しないディレクトリの再試行間隔",
   "jiv_config.config.fileWatcher.missingDirectoryRetryIntervalMilliseconds.description": "まだ存在しない設定ディレクトリの監視を開始するために、再試行する間隔（ミリ秒）。",
   "jiv_config.config.logging": "ログ記録",
-  "jiv_config.config.logging.description": "MezzConfigのオプションの診断ログ記録を制御します。",
+  "jiv_config.config.logging.description": "JIV Configのオプションの診断ログ記録を制御します。",
   "jiv_config.config.logging.logUntranslatedKeys": "未翻訳キーをログに記録",
   "jiv_config.config.logging.logUntranslatedKeys.description": "現在の言語に存在しないカテゴリおよび値の翻訳キーをログに記録します。開発環境ではデフォルトで有効です。"
 }

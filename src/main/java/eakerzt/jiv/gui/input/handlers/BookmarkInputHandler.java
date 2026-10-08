@@ -1,23 +1,23 @@
 package eakerzt.jiv.gui.input.handlers;
 
-import eakerzt.jiv.api.gui.IRecipeLayoutDrawable;
 import eakerzt.jiv.api.gui.handlers.IGuiProperties;
-import eakerzt.jiv.api.gui.inputs.RecipeSlotUnderMouse;
 import eakerzt.jiv.api.recipe.RecipeIngredientRole;
-import eakerzt.jiv.common.config.IClientConfig;
+import eakerzt.jiv.common.Internal;
 import eakerzt.jiv.common.input.IInternalKeyMappings;
 import eakerzt.jiv.common.input.IUserInputHandler;
 import eakerzt.jiv.common.input.UserInput;
 import eakerzt.jiv.common.input.handlers.SameElementInputHandler;
+import eakerzt.jiv.gui.bookmarks.BookmarkCell;
 import eakerzt.jiv.gui.bookmarks.BookmarkList;
 import eakerzt.jiv.gui.bookmarks.RecipeBookmark;
 import eakerzt.jiv.gui.input.CombinedRecipeFocusSource;
-import eakerzt.jiv.gui.input.PinnedTooltipManager;
 import eakerzt.jiv.gui.overlay.bookmarks.BookmarkOverlay;
 import eakerzt.jiv.gui.overlay.bookmarks.BookmarkPreviewTooltipController;
-import eakerzt.jiv.gui.recipes.IRecipeLayoutWithButtons;
 import eakerzt.jiv.gui.recipes.RecipesGui;
+
 import net.minecraft.client.gui.screens.Screen;
+
+import org.lwjgl.glfw.GLFW;
 
 import java.util.Optional;
 
@@ -25,88 +25,124 @@ public class BookmarkInputHandler implements IUserInputHandler {
 	private final CombinedRecipeFocusSource focusSource;
 	private final BookmarkList bookmarkList;
 	private final BookmarkOverlay bookmarkOverlay;
-	private final BookmarkPreviewTooltipController bookmarkPreviewTooltipController;
-	private final IClientConfig clientConfig;
+	private final BookmarkPreviewTooltipController preview;
 	private final RecipesGui recipesGui;
 
 	public BookmarkInputHandler(
-		CombinedRecipeFocusSource focusSource,
-		BookmarkList bookmarkList,
-		BookmarkOverlay bookmarkOverlay,
-		BookmarkPreviewTooltipController bookmarkPreviewTooltipController,
-		IClientConfig clientConfig,
-		RecipesGui recipesGui
-	) {
+			CombinedRecipeFocusSource focusSource,
+			BookmarkList bookmarkList,
+			BookmarkOverlay bookmarkOverlay,
+			BookmarkPreviewTooltipController preview,
+			RecipesGui recipesGui) {
 		this.focusSource = focusSource;
 		this.bookmarkList = bookmarkList;
 		this.bookmarkOverlay = bookmarkOverlay;
-		this.bookmarkPreviewTooltipController = bookmarkPreviewTooltipController;
-		this.clientConfig = clientConfig;
+		this.preview = preview;
 		this.recipesGui = recipesGui;
 	}
 
+	enum Action {
+		NONE,
+		INGREDIENT,
+		SINGLE_OUTPUT,
+		ALL_OUTPUTS
+	}
+
+	static Action action(int modifiers) {
+		if ((modifiers & (GLFW.GLFW_MOD_ALT | GLFW.GLFW_MOD_SUPER)) != 0) return Action.NONE;
+		if ((modifiers & GLFW.GLFW_MOD_CONTROL) != 0)
+			return (modifiers & GLFW.GLFW_MOD_SHIFT) != 0
+					? Action.ALL_OUTPUTS
+					: Action.SINGLE_OUTPUT;
+		return (modifiers & GLFW.GLFW_MOD_SHIFT) == 0 ? Action.INGREDIENT : Action.NONE;
+	}
+
 	@Override
-	public Optional<IUserInputHandler> handleUserInput(Screen screen, IGuiProperties guiProperties, UserInput input, IInternalKeyMappings keyBindings) {
-		if (PinnedTooltipManager.matchesInput(input.getKey(), keyBindings.getBookmark(), keyBindings.getPauseRecipeCycling())) {
-			Optional<IUserInputHandler> recipeHandler = handleRecipeBookmark(input);
-			if (recipeHandler.isPresent()) {
-				return recipeHandler;
+	public Optional<IUserInputHandler> handleUserInput(
+			Screen screen, IGuiProperties properties, UserInput input, IInternalKeyMappings keys) {
+		if (!keys.getBookmark().isActiveAndMatchesAllowingExtraModifiers(input.getKey()))
+			return Optional.empty();
+		Action action = action(input.getModifiers());
+		if (action == Action.NONE) return Optional.empty();
+		if (action != Action.INGREDIENT)
+			return handleRecipeBookmark(input, keys, action == Action.ALL_OUTPUTS);
+		return focusSource
+				.getIngredientUnderMouse(input, keys)
+				.findFirst()
+				.map(
+						clicked -> {
+							if (!input.isSimulate())
+								bookmarkList.onElementBookmarked(
+										clicked.getElement(), input, bookmarkOverlay);
+							return new SameElementInputHandler(this, clicked::isMouseOver);
+						});
+	}
+
+	private Optional<IUserInputHandler> handleRecipeBookmark(
+			UserInput input, IInternalKeyMappings keys, boolean all) {
+		double x = input.getMouseX(), y = input.getMouseY();
+		var pinned = preview.getRecipeSourceUnderMouse(x, y);
+		if (pinned.isPresent()) {
+			var source = pinned.get();
+			var selected = selectBookmark(source.bookmark(), source.slot(), all);
+			if (selected == null) return Optional.empty();
+			if (!input.isSimulate())
+				bookmarkList.toggleInGroup(
+						selected, bookmarkList.state(source.bookmark()).group, 1);
+			return Optional.of(new SameElementInputHandler(this, preview::isMouseOver));
+		}
+		// A hovered bookmark material retains its owning recipe, including input slots.
+		var clicked = focusSource.getIngredientUnderMouse(input, keys).findFirst();
+		if (clicked.isPresent()) {
+			var element = clicked.get().getElement();
+			var owner = element.getBookmark().filter(RecipeBookmark.class::isInstance);
+			if (owner.isPresent()) {
+				int slot = element instanceof BookmarkCell<?> cell ? cell.slot : -1;
+				var selected = selectBookmark((RecipeBookmark<?, ?>) owner.get(), slot, all);
+				if (selected == null) return Optional.empty();
+				if (!input.isSimulate())
+					bookmarkList.toggleInGroup(selected, bookmarkList.state(owner.get()).group, 1);
+				return Optional.of(new SameElementInputHandler(this, clicked.get()::isMouseOver));
 			}
-			return handleIngredientBookmark(input, keyBindings);
 		}
-		return Optional.empty();
+		if (preview.isMouseOver(x, y)) return Optional.empty();
+		var underMouse = recipesGui.getRecipeLayoutUnderMouse(x, y);
+		if (underMouse.isEmpty()) return Optional.empty();
+		var layout = underMouse.get().getRecipeLayout();
+		var slot = layout.getSlotUnderMouse(x, y);
+		if (slot.isEmpty()
+				|| (slot.get().slot().getRole() != RecipeIngredientRole.INPUT
+						&& slot.get().slot().getRole() != RecipeIngredientRole.OUTPUT))
+			return Optional.empty();
+		var bookmark = underMouse.get().getRecipeBookmark();
+		if (bookmark == null) return Optional.empty();
+		int index = layout.getRecipeSlotsView().getSlotViews().indexOf(slot.get().slot());
+		var selected =
+				bookmark.selectOutputs(
+						layout.getRecipeSlotsView(),
+						index,
+						all,
+						Internal.getJivRuntime().getIngredientManager());
+		if (selected == null) return Optional.empty();
+		if (!input.isSimulate()) bookmarkList.toggleInGroup(selected, 0, 1);
+		return Optional.of(new SameElementInputHandler(this, slot.get()::isMouseOver));
 	}
 
-	private Optional<IUserInputHandler> handleRecipeBookmark(UserInput input) {
-		double mouseX = input.getMouseX();
-		double mouseY = input.getMouseY();
-		if (bookmarkPreviewTooltipController.isMouseOver(mouseX, mouseY)) {
-			return Optional.empty();
-		}
-		Optional<IRecipeLayoutWithButtons<?>> layoutWithButtons = recipesGui.getRecipeLayoutUnderMouse(mouseX, mouseY);
-		if (layoutWithButtons.isEmpty()) {
-			return Optional.empty();
-		}
-
-		IRecipeLayoutWithButtons<?> recipeLayoutWithButtons = layoutWithButtons.get();
-		RecipeBookmark<?, ?> recipeBookmark = recipeLayoutWithButtons.getRecipeBookmark();
-		if (recipeBookmark == null) {
-			return Optional.empty();
-		}
-
-		IRecipeLayoutDrawable<?> layout = recipeLayoutWithButtons.getRecipeLayout();
-		Optional<RecipeSlotUnderMouse> slotUnderMouse = layout.getSlotUnderMouse(mouseX, mouseY);
-		if (!shouldBookmarkRecipe(slotUnderMouse, clientConfig.bookmarkOutputAsRecipe().get())) {
-			return Optional.empty();
-		}
-
-		if (!input.isSimulate()) {
-			bookmarkList.toggleBookmark(recipeBookmark);
-		}
-		return Optional.of(new SameElementInputHandler(this, layout::isMouseOver));
-	}
-
-	static boolean shouldBookmarkRecipe(Optional<RecipeSlotUnderMouse> slotUnderMouse, boolean bookmarkOutputAsRecipe) {
-		return slotUnderMouse
-			.map(slot -> shouldBookmarkRecipe(slot.slot().getRole(), bookmarkOutputAsRecipe))
-			.orElse(true);
-	}
-
-	static boolean shouldBookmarkRecipe(RecipeIngredientRole role, boolean bookmarkOutputAsRecipe) {
-		return role == RecipeIngredientRole.OUTPUT && bookmarkOutputAsRecipe;
-	}
-
-	private Optional<IUserInputHandler> handleIngredientBookmark(UserInput input, IInternalKeyMappings keyBindings) {
-		return focusSource.getIngredientUnderMouse(input, keyBindings)
-			.findFirst()
-			.flatMap(clicked -> {
-				if (input.isSimulate() ||
-					bookmarkList.onElementBookmarked(clicked.getElement(), input, bookmarkOverlay)
-				) {
-					IUserInputHandler handler = new SameElementInputHandler(this, clicked::isMouseOver);
-					return Optional.of(handler);
-				}
-				return Optional.empty();
-			});
+	private <R> RecipeBookmark<R, ?> selectBookmark(
+			RecipeBookmark<R, ?> bookmark, int slot, boolean all) {
+		var runtime = Internal.getJivRuntime();
+		return runtime.getRecipeManager()
+				.createRecipeLayoutDrawable(
+						bookmark.getRecipeCategory(),
+						bookmark.getRecipe(),
+						runtime.getJivHelpers().getFocusFactory().getEmptyFocusGroup())
+				.map(
+						layout ->
+								bookmark.selectOutputs(
+										layout.getRecipeSlotsView(),
+										slot,
+										all,
+										runtime.getIngredientManager()))
+				.orElse(null);
 	}
 }
