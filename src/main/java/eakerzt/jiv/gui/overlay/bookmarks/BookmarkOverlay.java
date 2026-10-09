@@ -73,6 +73,62 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 	private final IIngredientGridConfig bookmarkListConfig;
 	private final BookmarkPreviewTooltipController previewTooltipController;
 	private boolean screenPropertiesDirty;
+	private final PageFlipHover workspaceDragHover = new PageFlipHover(System::currentTimeMillis, 600);
+	private IngredientGridWithNavigation.@Nullable Viewport dragOriginViewport;
+	private @Nullable String dragHint;
+
+	void captureDragOrigin() {
+		dragOriginViewport = contents.captureViewport();
+		workspaceDragHover.update(null);
+		dragHint = null;
+	}
+
+	private PageFlipHover.@Nullable Direction hoveredWorkspaceArrow(double x, double y) {
+		if (contents.getNextPageButtonArea().contains(x, y)) return PageFlipHover.Direction.NEXT;
+		if (contents.getBackButtonArea().contains(x, y)) return PageFlipHover.Direction.PREVIOUS;
+		return null;
+	}
+
+	void updateWorkspaceDrag(double x, double y) {
+		var direction = hoveredWorkspaceArrow(x, y);
+		boolean alt = Minecraft.getInstance().hasAltDown();
+		dragHint = direction != null && alt
+				? direction == PageFlipHover.Direction.NEXT ? "jiv.bookmarks.drag.new_after" : "jiv.bookmarks.drag.new_before"
+				: null;
+		var flip = workspaceDragHover.update(alt ? null : direction);
+		if (flip != null && bookmarkList.browseDragNamespace(flip == PageFlipHover.Direction.NEXT ? 1 : -1))
+			contents.updateLayoutToFirstPage();
+		setPageButtonsForcePressed(direction == PageFlipHover.Direction.NEXT, direction == PageFlipHover.Direction.PREVIOUS);
+	}
+
+	boolean dropOnWorkspaceArrow(double x, double y) {
+		var direction = hoveredWorkspaceArrow(x, y);
+		if (direction == null || !Minecraft.getInstance().hasAltDown()) return false;
+		boolean success = bookmarkList.transferDraggedToNewNamespace(direction == PageFlipHover.Direction.NEXT);
+		if (success) contents.updateLayoutToFirstPage();
+		return success;
+	}
+
+	boolean previewGroupDrag(double x, double y, boolean commit) {
+		var area = contents.getSlotBackgroundArea();
+		if (x < area.x() - BookmarkGroupController.GUTTER || x >= area.x() + area.width()
+				|| y < area.y() || y >= area.y() + area.height()) return false;
+		var drop = BookmarkGroupController.groupDropTarget(contents.getAllSlots(), y,
+				bookmarkList.activeDragGroup(), bookmarkList::state);
+		if (bookmarkList.isCrossNamespaceDrag()) {
+			int index = bookmarkList.page().bookmarks.size();
+			if (drop != null) {
+				var target = drop.bookmark();
+				int group = bookmarkList.state(target).group;
+				var members = bookmarkList.getGroupBookmarks(group);
+				if (group != 0) target = drop.after() ? members.getLast() : members.getFirst();
+				index = bookmarkList.page().bookmarks.indexOf(target) + (drop.after() ? 1 : 0);
+			}
+			return !commit || bookmarkList.transferDragged(index, 0);
+		}
+		if (drop != null) bookmarkList.moveGroupRelative(bookmarkList.activeDragGroup(), drop.bookmark(), drop.after());
+		return true;
+	}
 
 	public BookmarkOverlay(
 		BookmarkList bookmarkList,
@@ -314,7 +370,16 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
 
 	public void drawTooltips(Minecraft minecraft, GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
 		updateScreenPropertiesIfDirty();
-		if (!this.bookmarkDragManager.drawDraggedItem(guiGraphics, mouseX, mouseY)) {
+		boolean drewDrag = this.bookmarkDragManager.drawDraggedItem(guiGraphics, mouseX, mouseY);
+		if (bookmarkList.isDragActive()) {
+			if (dragHint != null) {
+				var tooltip = new eakerzt.jiv.common.gui.JivTooltip();
+				tooltip.add(net.minecraft.network.chat.Component.translatable(dragHint));
+				tooltip.draw(guiGraphics, mouseX, mouseY);
+			}
+			return;
+		}
+		if (!drewDrag) {
 			if (isListDisplayed() && !previewTooltipController.isVisible()) {
 				this.contents.drawTooltips(minecraft, guiGraphics, mouseX, mouseY);
 				this.groupController.drawTooltip(guiGraphics,mouseX,mouseY);
@@ -488,6 +553,7 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
     }
 
     public void beginDrag(IBookmark bookmark, int inputSlot) {
+        captureDragOrigin();
         contents.setKeepPositionOnRelayout(inputSlot >= 0);
         bookmarkList.beginDrag(bookmark, inputSlot);
     }
@@ -495,12 +561,53 @@ public class BookmarkOverlay implements IRecipeFocusSource, IBookmarkOverlay {
         bookmarkList.finishDrag(commit);
         // Flush the final input order while the viewport is still fixed.
         contents.setKeepPositionOnRelayout(false);
+        if (!commit && dragOriginViewport != null) contents.restoreViewport(dragOriginViewport);
+        dragOriginViewport = null;
+        workspaceDragHover.update(null);
+        dragHint = null;
+        setPageButtonsForcePressed(false, false);
     }
 
     public boolean previewDrag(IBookmark bookmark, eakerzt.jiv.gui.bookmarks.@org.jspecify.annotations.Nullable BookmarkCell<?> source, double x, double y) {
+        return previewDrag(bookmark, source, x, y, false);
+    }
+
+    public boolean previewDrag(IBookmark bookmark, eakerzt.jiv.gui.bookmarks.@org.jspecify.annotations.Nullable BookmarkCell<?> source, double x, double y, boolean commit) {
         if (source != null) return moveRecipeInput(source, x, y);
+        if (!contents.getSlotBackgroundArea().contains(x, y)) return false;
+        if (bookmarkList.isCrossNamespaceDrag()) {
+            int index = bookmarkList.page().bookmarks.size(), group = 0;
+            for (var slot : contents.getAllSlots()) {
+                if (slot.isBlocked() || !slot.getArea().contains(x, y)) continue;
+                var owner = slot.getOptionalElement().flatMap(IElement::getBookmark).orElse(null);
+                if (owner != null) {
+                    index = bookmarkList.page().bookmarks.indexOf(owner);
+                    group = bookmarkList.state(owner).group;
+                } else {
+                    int rowY = slot.getArea().y();
+                    var row = contents.getAllSlots().stream()
+                        .filter(s -> !s.isBlocked() && s.getArea().y() == rowY)
+                        .flatMap(s -> s.getOptionalElement().stream()).toList();
+                    group = BookmarkGroupController.rowGroup(row, bookmarkList::state);
+                    if (group != 0) {
+                        var members = bookmarkList.getGroupBookmarks(group);
+                        if (!members.isEmpty()) index = bookmarkList.page().bookmarks.indexOf(members.getLast()) + 1;
+                    }
+                }
+                break;
+            }
+            boolean valid = bookmarkList.canDropDragged(group);
+            dragHint = valid ? null : "jiv.bookmarks.drag.duplicate";
+            return valid && (!commit || bookmarkList.transferDragged(index, group));
+        }
         for (BookmarkDragTarget target : createBookmarkDragTargets(bookmark)) {
             if (target.area().contains(x, y)) {
+                int group = target.group() >= 0 ? target.group() : bookmarkList.state(bookmarkList.page().bookmarks.get(target.index())).group;
+                if (!bookmarkList.canDropDragged(group)) {
+                    dragHint = "jiv.bookmarks.drag.duplicate";
+                    return false;
+                }
+                dragHint = null;
                 if (target.group() >= 0) bookmarkList.moveBookmarkToGroup(bookmark, target.index(), target.group());
                 else bookmarkList.moveBookmark(bookmark, target.index());
                 return true;

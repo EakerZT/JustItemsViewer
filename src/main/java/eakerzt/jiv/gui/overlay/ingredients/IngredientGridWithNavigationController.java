@@ -147,7 +147,7 @@ public class IngredientGridWithNavigationController implements IPaged, IUserInpu
 		return new PageAnchorClickableIngredient<>(delegate);
 	}
 
-	private void updateLayoutStartingAt(int firstItemIndex) {
+	void updateLayoutStartingAt(int firstItemIndex) {
 		if (usesScrollbar()) {
 			this.scrollController.updateLayoutStartingAt(firstItemIndex);
 		} else {
@@ -157,6 +157,11 @@ public class IngredientGridWithNavigationController implements IPaged, IUserInpu
 			rememberFirstVisibleElementAsPageAnchor();
 		}
 		this.onLayoutChanged.run();
+	}
+
+	int getFirstItemIndex() {
+		return usesScrollbar() ? this.scrollController.getFirstVisibleScrollRow() * ingredientGrid.getColumnCount()
+				: pageState.getFirstItemIndex();
 	}
 
 	private void rememberFirstVisibleElementAsPageAnchor() {

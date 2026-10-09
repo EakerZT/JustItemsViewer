@@ -27,7 +27,6 @@ public class BookmarkDrag<T> {
 	private final ImmutableRect2i origin;
 	private final @Nullable BookmarkCell<?> inputCell;
 	private boolean dragging;
-	private boolean validPreview;
 	private java.util.List<BookmarkOverlay.DraggedCell> draggedCells = java.util.List.of();
 	private final long dragCanStartTime;
 	private final PageFlipHover pageFlipHover = new PageFlipHover(System::currentTimeMillis);
@@ -88,7 +87,8 @@ public class BookmarkDrag<T> {
 			dragging = true;
 			bookmarkOverlay.beginDrag(bookmark, inputCell == null ? -1 : inputCell.slot);
 		}
-		validPreview |= bookmarkOverlay.previewDrag(bookmark, inputCell, mouseX, mouseY);
+		if (inputCell == null) bookmarkOverlay.updateWorkspaceDrag(mouseX, mouseY);
+		bookmarkOverlay.previewDrag(bookmark, inputCell, mouseX, mouseY);
 		// Sorting keeps grid slots fixed. A mouse exclusion would block the target
 		// slot and repack unrelated recipes on every mouse move.
 		if (inputCell != null) return;
@@ -104,8 +104,6 @@ public class BookmarkDrag<T> {
 				case PREVIOUS -> pageDelegate.previousPage();
 			}
 		}
-		bookmarkOverlay.setPageButtonsForcePressed(
-				hoveredDirection == Direction.NEXT, hoveredDirection == Direction.PREVIOUS);
 	}
 
 	public boolean isDragging() {
@@ -147,9 +145,9 @@ public class BookmarkDrag<T> {
 
 		if (input.isSimulate()) return true;
 		boolean success =
-				validPreview
-						| bookmarkOverlay.previewDrag(
-								bookmark, inputCell, input.getMouseX(), input.getMouseY());
+				(inputCell == null && bookmarkOverlay.dropOnWorkspaceArrow(input.getMouseX(), input.getMouseY()))
+						|| bookmarkOverlay.previewDrag(
+								bookmark, inputCell, input.getMouseX(), input.getMouseY(), true);
 		bookmarkOverlay.finishDrag(success);
 		stop();
 		return success;

@@ -338,7 +338,7 @@
   "jiv.bookmarks.tree.stats": "统计",
   "jiv.bookmarks.tree.empty": "此组没有收藏的配方",
   "jiv.bookmarks.tree.crafts": "需要执行：%s 次",
-  "jiv.bookmarks.tree.controls": "左键：折叠/展开；右键：查看配方；拖拽：平移；滚轮：缩放",
+  "jiv.bookmarks.tree.controls": "左键：查看配方；右键：折叠/展开；拖拽：平移；滚轮：缩放",
   "jiv.bookmarks.tree.inputs": "所需原料",
   "jiv.bookmarks.tree.outputs": "最终产物",
   "jiv.bookmarks.tree.remainders": "剩余产物",
@@ -648,5 +648,8 @@
   "key.jiv.copyIngredientName": "复制物品／流体名称",
   "jiv.bookmarks.mode.items": "物品模式（默认分组）",
   "jiv.bookmarks.mode.recipes": "配方模式（默认分组）",
-  "jiv.bookmarks.mode.switch": "点击切换默认分组的布局"
+  "jiv.bookmarks.mode.switch": "点击切换默认分组的布局",
+  "jiv.bookmarks.drag.new_before": "松开鼠标：在当前书签空间前创建新空间并移入",
+  "jiv.bookmarks.drag.new_after": "松开鼠标：在当前书签空间后创建新空间并移入",
+  "jiv.bookmarks.drag.duplicate": "目标区域已有相同收藏，无法移入"
 }

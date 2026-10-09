@@ -56,6 +56,10 @@ public class ClientInputHandler {
 	 * When we have keyboard focus, use Pre
 	 */
 	public boolean onKeyboardKeyPressedPre(Screen screen, UserInput input) {
+		if (this.dragRouter.isDragging() && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+			this.dragRouter.cancelDrag();
+			return true;
+		}
 		if (this.chatLinkInputHandler.handleUserInput(screen, input, keybindings)) {
 			return true;
 		}

@@ -12,6 +12,7 @@ final class PageFlipHover {
 	static final long FLIP_DELAY_MS = 500;
 
 	private final LongSupplier currentTimeMillis;
+	private final long delayMillis;
 	private @Nullable Direction hoveredDirection;
 	private long hoverStartMillis;
 
@@ -21,7 +22,12 @@ final class PageFlipHover {
 	}
 
 	PageFlipHover(LongSupplier currentTimeMillis) {
+		this(currentTimeMillis, FLIP_DELAY_MS);
+	}
+
+	PageFlipHover(LongSupplier currentTimeMillis, long delayMillis) {
 		this.currentTimeMillis = currentTimeMillis;
+		this.delayMillis = delayMillis;
 	}
 
 	@Nullable
@@ -32,7 +38,7 @@ final class PageFlipHover {
 			this.hoverStartMillis = now;
 			return null;
 		}
-		if (hoveredDirection == null || now - this.hoverStartMillis < FLIP_DELAY_MS) {
+		if (hoveredDirection == null || now - this.hoverStartMillis < delayMillis) {
 			return null;
 		}
 		this.hoverStartMillis = now;

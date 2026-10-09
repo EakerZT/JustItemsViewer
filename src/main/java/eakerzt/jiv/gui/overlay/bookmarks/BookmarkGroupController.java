@@ -26,7 +26,6 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	private final IngredientGridWithNavigation contents;
 	private final BookmarkOverlay overlay;
 	private final BookmarkDragScroll groupScroll = new BookmarkDragScroll(System::nanoTime);
-	private final PageFlipHover groupPageFlip = new PageFlipHover(System::currentTimeMillis);
 	private int startRow = -1, endRow = -1, dragButton, startGroup;
 	private boolean movingGroup;
 	private int draggedGroup = -1;
@@ -61,6 +60,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 					area.y() - firstY));
 		}
 		draggedCells = cells;
+		overlay.captureDragOrigin();
 		contents.setKeepPositionOnRelayout(true);
 		bookmarks.beginGroupDrag(group);
 		return true;
@@ -86,11 +86,10 @@ public final class BookmarkGroupController implements IUserInputHandler {
 
 	private void finishGroupDrag(boolean commit) {
 		if (draggedGroup < 0) return;
-		bookmarks.finishDrag(commit);
+		overlay.finishDrag(commit);
 		contents.setKeepPositionOnRelayout(false);
 		draggedGroup = -1;
 		draggedCells = List.of();
-		groupPageFlip.update(null);
 		contents.setPageButtonsForcePressed(false, false);
 	}
 
@@ -98,25 +97,8 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		if (draggedGroup < 0) return;
 		var area = grid();
 		overlay.scrollDuringDrag(groupScroll, Math.max(mouseX, area.x() + 1), mouseY);
-		PageFlipHover.Direction direction =
-				contents.getNextPageButtonArea().contains(mouseX, mouseY)
-						? PageFlipHover.Direction.NEXT
-						: contents.getBackButtonArea().contains(mouseX, mouseY)
-								? PageFlipHover.Direction.PREVIOUS
-								: null;
-		var flip = groupPageFlip.update(direction);
-		if (flip == PageFlipHover.Direction.NEXT) contents.getPageDelegate().nextPage();
-		else if (flip == PageFlipHover.Direction.PREVIOUS)
-			contents.getPageDelegate().previousPage();
-		contents.setPageButtonsForcePressed(
-				direction == PageFlipHover.Direction.NEXT,
-				direction == PageFlipHover.Direction.PREVIOUS);
-		if (mouseX < area.x() - GUTTER || mouseX >= area.x() + area.width()
-                || mouseY < area.y() || mouseY >= area.y() + area.height()) return;
-		var members = bookmarks.getGroupBookmarks(draggedGroup);
-		if (members.isEmpty()) return;
-		var drop = groupDropTarget(contents.getAllSlots(), mouseY, draggedGroup, bookmarks::state);
-		if (drop != null) bookmarks.moveGroupRelative(draggedGroup, drop.bookmark(), drop.after());
+		overlay.updateWorkspaceDrag(mouseX, mouseY);
+		overlay.previewGroupDrag(mouseX, mouseY, false);
 	}
 
 	record GroupDrop(IBookmark bookmark, boolean after) {}
@@ -229,6 +211,10 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		double x = input.getMouseX(), y = input.getMouseY();
 		Minecraft minecraft = Minecraft.getInstance();
 		if (input.getKey().getType() != InputConstants.Type.MOUSE) {
+			if (draggedGroup >= 0 && input.getKey().getValue() == org.lwjgl.glfw.GLFW.GLFW_KEY_ESCAPE) {
+				if (!input.isSimulate()) finishGroupDrag(false);
+				return Optional.of(this);
+			}
 			// Repeated modifier presses do not relinquish the held mouse gesture.
 			if (draggedGroup >= 0 && isModifierKey(input.getKey().getValue())) return Optional.of(this);
 			int group = hoveredGroup(x, y);
@@ -256,8 +242,8 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		int button = input.getKey().getValue();
 		if (draggedGroup >= 0) {
 			if (input.isMouseButton(0) && !input.isSimulate()) {
-				updateGroupDrag((int) x, (int) y);
-				finishGroupDrag(true);
+				boolean success = overlay.dropOnWorkspaceArrow(x, y) || overlay.previewGroupDrag(x, y, true);
+				finishGroupDrag(success);
 			}
 			return Optional.of(this);
 		}
@@ -345,6 +331,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	@Override
 	public Optional<IUserInputHandler> handleMouseScrolled(
 			double x, double y, double dx, double dy) {
+		if (bookmarks.isDragActive()) return Optional.empty();
 		Minecraft minecraft = Minecraft.getInstance();
 		dy = choiceScrollDelta(dx, dy, minecraft.hasControlDown());
 		if (dy == 0) return Optional.empty();
@@ -384,7 +371,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 			if (group != 0) {
 				var state = bookmarks.page().groups.get(group);
 				int color =
-						group == draggedGroup
+						group == bookmarks.activeDragGroup()
 								? 0xffaaaaaa
 								: state != null && state.linked ? 0x6645DA75 : 0xff666666;
 				int x = grid.x() - 4,

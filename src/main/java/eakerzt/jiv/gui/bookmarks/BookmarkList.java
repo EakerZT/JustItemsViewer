@@ -42,8 +42,77 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	private int draggedGroup = -1;
 	private List<IBookmark> dragOriginalOrder = List.of();
 	private final Map<IBookmark, BookmarkState> dragOriginalStates = new IdentityHashMap<>();
+	private @Nullable BookmarkPage dragSource;
+	private List<IBookmark> dragPayload = List.of();
+	private @Nullable BookmarkGroup dragGroupSettings;
+
+	public boolean isCrossNamespaceDrag() { return dragSource != null && page() != dragSource; }
+	public boolean isDragActive() { return draggedBookmark != null; }
+	public int activeDragGroup() { return isCrossNamespaceDrag() ? -1 : draggedGroup; }
+
+	private void restoreDragSource() {
+		if (dragSource == null) return;
+		dragSource.bookmarks.clear();
+		dragSource.bookmarks.addAll(dragOriginalOrder);
+		dragSource.states.clear();
+		dragOriginalStates.forEach((b, s) -> dragSource.states.put(b, s.copy()));
+	}
+
+	/** Browsing never wraps, creates a space, or removes the source payload. */
+	public boolean browseDragNamespace(int delta) {
+		if (dragSource == null || draggedInput >= 0) return false;
+		int next = namespace + delta;
+		if (next < 0 || next >= pages.size()) return false;
+		restoreDragSource();
+		namespace = next;
+		bookmarksList = page().bookmarks;
+		refreshDragLayout();
+		return true;
+	}
+
+	public boolean canDropDragged(int group) {
+		if (draggedBookmark == null) return false;
+		return draggedGroup >= 0 || bookmarksList.stream().noneMatch(b ->
+				b != draggedBookmark && state(b).group == group && matchesCollection(b, draggedBookmark));
+	}
+
+	/** Called only on release, after the destination has been validated. */
+	public boolean transferDragged(int index, int group) {
+		if (!isCrossNamespaceDrag() || !canDropDragged(group)) return false;
+		restoreDragSource();
+		int destinationGroup = draggedGroup >= 0 ? page().nextGroupId() : group;
+		if (draggedGroup >= 0) page().groups.put(destinationGroup, dragGroupSettings.copy());
+		int insertion = Math.clamp(index, 0, bookmarksList.size());
+		for (IBookmark entry : dragPayload) {
+			BookmarkState copy = dragOriginalStates.get(entry).copy();
+			copy.group = destinationGroup;
+			page().states.put(entry, copy);
+		}
+		bookmarksList.addAll(insertion, dragPayload);
+		dragSource.bookmarks.removeIf(b -> dragPayload.stream().anyMatch(member -> member == b));
+		for (IBookmark entry : dragPayload) dragSource.states.remove(entry);
+		cleanupEmptyGroups(dragSource);
+		refreshDragLayout();
+		return true;
+	}
+
+	public boolean transferDraggedToNewNamespace(boolean after) {
+		if (dragSource == null || draggedInput >= 0) return false;
+		restoreDragSource();
+		int insertion = namespace + (after ? 1 : 0);
+		pages.add(insertion, new BookmarkPage());
+		namespace = insertion;
+		bookmarksList = page().bookmarks;
+		return transferDragged(0, 0);
+	}
+
+	private static void cleanupEmptyGroups(BookmarkPage space) {
+		space.groups.keySet().removeIf(g -> g != 0 && space.bookmarks.stream().noneMatch(b -> space.state(b).group == g));
+	}
 
 	public void beginDrag(IBookmark bookmark, int inputSlot) {
+		dragSource = page();
+		dragPayload = List.of(bookmark);
 		draggedBookmark = bookmark;
 		draggedGroup = -1;
 		draggedInput = inputSlot;
@@ -56,15 +125,18 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	public void finishDrag(boolean commit) {
 		if (draggedBookmark == null) return;
 		if (!commit) {
-			bookmarksList.clear();
-			bookmarksList.addAll(dragOriginalOrder);
-			page().states.clear();
-			page().states.putAll(dragOriginalStates);
+			restoreDragSource();
+			namespace = pages.indexOf(dragSource);
+			bookmarksList = page().bookmarks;
 		}
+		if (commit) cleanupEmptyGroups(page());
 		draggedBookmark = null;
 		draggedGroup = -1;
 		dragOriginalOrder = List.of();
 		dragOriginalStates.clear();
+		dragSource = null;
+		dragPayload = List.of();
+		dragGroupSettings = null;
 		refreshDragLayout();
 		if (commit) changed();
 	}
@@ -74,6 +146,8 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		if (group == 0 || members.isEmpty()) return;
 		beginDrag(members.getFirst(), -1);
 		draggedGroup = group;
+		dragPayload = List.copyOf(members);
+		dragGroupSettings = page().groups.getOrDefault(group, new BookmarkGroup()).copy();
 		refreshDragLayout();
 	}
 
@@ -112,7 +186,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		int old = identityIndex(bookmark);
 		if (old < 0 || index < 0 || index >= bookmarksList.size()) return;
 		if (bookmarksList.stream()
-				.anyMatch(b -> b != bookmark && state(b).group == group && b.equals(bookmark)))
+				.anyMatch(b -> b != bookmark && state(b).group == group && matchesCollection(b, bookmark)))
 			return;
 		bookmarksList.remove(old);
 		bookmarksList.add(index, bookmark);
@@ -143,7 +217,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	}
 
 	private boolean isDraggedCell(IElement<?> element) {
-		return draggedBookmark != null
+		return draggedBookmark != null && !isCrossNamespaceDrag()
 				&& (draggedGroup >= 0
 						? element.getBookmark()
 								.filter(b -> state(b).group == draggedGroup)
@@ -230,7 +304,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 			int targetGroup = state(target).group;
 			if (draggedBookmark != null
 					&& bookmarksList.stream()
-							.anyMatch(b -> state(b).group == targetGroup && b.equals(bookmark))) {
+							.anyMatch(b -> state(b).group == targetGroup && matchesCollection(b, bookmark))) {
 				bookmarksList.add(oldIndex, bookmark);
 				return;
 			}
@@ -495,6 +569,10 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	}
 
 	public void changeNamespace(int delta) {
+		if (isDragActive()) {
+			browseDragNamespace(delta);
+			return;
+		}
 		int next = namespace + delta;
 		if (next < 0) next = pages.size() - 1;
 		if (next >= pages.size()) {

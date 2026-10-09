@@ -418,12 +418,12 @@ public final class BookmarkTreeScreen extends ConfigScreenBase {
 		}
 		Node node = nodeAt(x, y);
 		if (node == null) return true;
-		if (button == 0 && node.bookmark() != null) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_RIGHT && node.bookmark() != null) {
 			if (!collapsed.add(node.bookmark())) collapsed.remove(node.bookmark());
 			rebuild();
 			return true;
 		}
-		if (button == 1 && node.bookmark() instanceof RecipeBookmark<?, ?> recipe) {
+		if (button == GLFW.GLFW_MOUSE_BUTTON_LEFT && node.bookmark() instanceof RecipeBookmark<?, ?> recipe) {
 			showRecipe(recipe);
 			return true;
 		}

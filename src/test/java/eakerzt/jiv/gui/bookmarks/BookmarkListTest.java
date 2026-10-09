@@ -13,6 +13,96 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BookmarkListTest {
+	@Test void browsingDragRestoresPreviewAndCancelReturnsToOriginalSpace() {
+		var list = list();
+		var first = new BookmarkPage(); var second = new BookmarkPage();
+		var a = new FakeBookmark("a"); var b = new FakeBookmark("b"); var c = new FakeBookmark("c");
+		first.bookmarks.addAll(List.of(a, b)); second.bookmarks.add(c);
+		list.setWorkspace(List.of(first, second), 0);
+		list.beginDrag(a, -1);
+		list.moveBookmark(a, 1);
+		assertEquals(List.of(b, a), first.bookmarks);
+		assertFalse(list.browseDragNamespace(-1));
+		assertTrue(list.browseDragNamespace(1));
+		assertEquals(List.of(a, b), first.bookmarks);
+		assertEquals(List.of(c), second.bookmarks);
+		assertFalse(list.browseDragNamespace(1));
+		assertEquals(2, list.getPages().size());
+		list.finishDrag(false);
+		assertSame(first, list.page());
+		assertEquals(List.of(a, b), first.bookmarks);
+	}
+
+	@Test void crossSpaceDropPreservesAllStateAndKeepsEmptySourceSpace() {
+		var list = list(); var first = new BookmarkPage(); var second = new BookmarkPage();
+		var a = new FakeBookmark("a"); first.bookmarks.add(a);
+		var state = first.state(a);
+		state.multiplier = 64; state.group = 2; state.collapsed = true;
+		state.removedSlots.add(3); state.choices.put(1, 2); state.inputOrder.addAll(List.of(2, 1));
+		first.groups.put(2, new BookmarkGroup());
+		list.setWorkspace(List.of(first, second), 0);
+		list.beginDrag(a, -1);
+		list.browseDragNamespace(1);
+		assertTrue(first.bookmarks.contains(a));
+		assertTrue(second.bookmarks.isEmpty());
+		assertTrue(list.transferDragged(0, 0));
+		list.finishDrag(true);
+		assertTrue(first.bookmarks.isEmpty()); assertFalse(first.groups.containsKey(2));
+		assertEquals(2, list.getPages().size()); assertSame(second, list.page());
+		assertSame(a, second.bookmarks.getFirst());
+		var moved = second.state(a);
+		assertEquals(0, moved.group); assertEquals(64, moved.multiplier); assertTrue(moved.collapsed);
+		assertEquals(state.removedSlots, moved.removedSlots);
+		assertEquals(state.choices, moved.choices); assertEquals(state.inputOrder, moved.inputOrder);
+	}
+
+	@Test void duplicateBlocksOnlyDestinationRegion() {
+		var list = list(); var first = new BookmarkPage(); var second = new BookmarkPage();
+		var a = new FakeBookmark("a"); var duplicate = new FakeBookmark("a");
+		first.bookmarks.add(a); second.bookmarks.add(duplicate);
+		list.setWorkspace(List.of(first, second), 0); list.beginDrag(a, -1); list.browseDragNamespace(1);
+		assertFalse(list.canDropDragged(0)); assertFalse(list.transferDragged(0, 0));
+		assertEquals(List.of(a), first.bookmarks); assertEquals(List.of(duplicate), second.bookmarks);
+		assertTrue(list.canDropDragged(1)); assertTrue(list.transferDragged(1, 1)); list.finishDrag(true);
+		assertEquals(1, second.state(a).group); assertEquals(0, second.state(duplicate).group);
+	}
+
+	@Test void groupTransferRemapsCollisionAndRetainsIndependentSettings() {
+		var list = list(); var first = new BookmarkPage(); var second = new BookmarkPage();
+		var a = new FakeBookmark("a"); var b = new FakeBookmark("b"); var target = new FakeBookmark("a");
+		first.bookmarks.addAll(List.of(a, b)); second.bookmarks.add(target);
+		first.state(a).group = first.state(b).group = second.state(target).group = 1;
+		var settings = new BookmarkGroup(); settings.todo = settings.linked = settings.collapsed = true;
+		first.groups.put(1, settings); second.groups.put(1, new BookmarkGroup());
+		list.setWorkspace(List.of(first, second), 0); list.beginGroupDrag(1); list.browseDragNamespace(1);
+		assertEquals(-1, list.activeDragGroup());
+		assertTrue(list.transferDragged(1, 0)); list.finishDrag(true);
+		assertEquals(List.of(target, a, b), second.bookmarks);
+		assertEquals(1, second.state(target).group); assertEquals(2, second.state(a).group); assertEquals(2, second.state(b).group);
+		var moved = second.groups.get(2);
+		assertTrue(moved.todo && moved.linked && moved.collapsed); assertFalse(second.groups.get(1).todo);
+		assertTrue(first.bookmarks.isEmpty());
+	}
+
+	@Test void altDropInsertsBeforeOrAfterVisibleSpace() {
+		for (boolean after : List.of(false, true)) {
+			var list = list(); var first = new BookmarkPage(); var second = new BookmarkPage();
+			var a = new FakeBookmark("a"); first.bookmarks.add(a);
+			list.setWorkspace(List.of(first, second), 0); list.beginDrag(a, -1); list.browseDragNamespace(1);
+			assertTrue(list.transferDraggedToNewNamespace(after)); list.finishDrag(true);
+			assertEquals(after ? 2 : 1, list.getNamespace()); assertEquals(3, list.getPages().size());
+			assertEquals(List.of(a), list.page().bookmarks); assertTrue(first.bookmarks.isEmpty());
+			assertSame(second, list.getPages().get(after ? 1 : 2));
+		}
+	}
+
+	@Test void inputReorderCannotBrowseOrCreateSpace() {
+		var list = list(); var first = new BookmarkPage(); var second = new BookmarkPage();
+		var a = new FakeBookmark("a"); first.bookmarks.add(a);
+		list.setWorkspace(List.of(first, second), 0); list.beginDrag(a, 0);
+		assertFalse(list.browseDragNamespace(1)); assertFalse(list.transferDraggedToNewNamespace(true));
+		assertEquals(2, list.getPages().size()); list.finishDrag(false);
+	}
 	@Test void deletingSpacesRetainsAdjacentContentsAndOneEmptySpace() {
 		BookmarkList list = list();
 		BookmarkPage first = new BookmarkPage(), second = new BookmarkPage();

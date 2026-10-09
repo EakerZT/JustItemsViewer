@@ -586,7 +586,7 @@
   "jiv.bookmarks.tree.stats": "Statistics",
   "jiv.bookmarks.tree.empty": "No bookmarked recipes in this group",
   "jiv.bookmarks.tree.crafts": "Required crafts: %s",
-  "jiv.bookmarks.tree.controls": "Left: collapse/expand; Right: view recipe; Drag: pan; Scroll: zoom",
+  "jiv.bookmarks.tree.controls": "Left: view recipe; Right: collapse/expand; Drag: pan; Scroll: zoom",
   "jiv.bookmarks.tree.inputs": "Ingredients needed",
   "jiv.bookmarks.tree.outputs": "Results",
   "jiv.bookmarks.tree.remainders": "Remainders",
@@ -597,5 +597,8 @@
   "key.jiv.copyIngredientName": "Copy Ingredient Name",
   "jiv.bookmarks.mode.items": "Item mode (default group)",
   "jiv.bookmarks.mode.recipes": "Recipe mode (default group)",
-  "jiv.bookmarks.mode.switch": "Click to switch the default group layout"
+  "jiv.bookmarks.mode.switch": "Click to switch the default group layout",
+  "jiv.bookmarks.drag.new_before": "Release to create a space before this one and move here",
+  "jiv.bookmarks.drag.new_after": "Release to create a space after this one and move here",
+  "jiv.bookmarks.drag.duplicate": "This destination already contains the same bookmark"
 }

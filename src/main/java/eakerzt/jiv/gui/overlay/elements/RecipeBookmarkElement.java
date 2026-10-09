@@ -413,7 +413,7 @@ public class RecipeBookmarkElement<R, I> implements IElement<I> {
 			var poseStack = guiGraphics.pose();
 			poseStack.pushMatrix();
 			{
-				poseStack.translate(8 + xOffset, 8 + yOffset);
+				poseStack.translate(xOffset, 8 + yOffset);
 				poseStack.scale(0.5f, 0.5f);
 				icon.draw(guiGraphics);
 			}

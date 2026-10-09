@@ -8,6 +8,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class PageFlipHoverTest {
+	@Test public void spaceHoverWaitsSixHundredMillisAndAltResetRestartsDelay() {
+		AtomicLong now = new AtomicLong(1000);
+		PageFlipHover hover = new PageFlipHover(now::get, 600);
+		assertNull(hover.update(PageFlipHover.Direction.NEXT));
+		now.set(1599); assertNull(hover.update(PageFlipHover.Direction.NEXT));
+		now.set(1600); assertEquals(PageFlipHover.Direction.NEXT, hover.update(PageFlipHover.Direction.NEXT));
+		// Alt suppresses navigation and discards elapsed hover time.
+		now.set(2100); assertNull(hover.update(null));
+		now.set(9000); assertNull(hover.update(null));
+		assertNull(hover.update(PageFlipHover.Direction.NEXT));
+		now.set(9599); assertNull(hover.update(PageFlipHover.Direction.NEXT));
+		now.set(9600); assertEquals(PageFlipHover.Direction.NEXT, hover.update(PageFlipHover.Direction.NEXT));
+	}
 	@Test
 	public void hoverDoesNotFlipBeforeTheDelay() {
 		// Setup: a controllable clock and a hover tracker.

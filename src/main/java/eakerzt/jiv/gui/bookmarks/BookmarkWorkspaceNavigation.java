@@ -16,6 +16,11 @@ public final class BookmarkWorkspaceNavigation implements IPaged {
 
 	@Override public boolean nextPage() {
 		if (!hasNext()) return false;
+		if (bookmarks.isDragActive()) {
+			if (!bookmarks.browseDragNamespace(1)) return false;
+			resetPage.run();
+			return true;
+		}
 		bookmarks.changeNamespace(1);
 		resetPage.run();
 		return true;
@@ -23,15 +28,21 @@ public final class BookmarkWorkspaceNavigation implements IPaged {
 
 	@Override public boolean previousPage() {
 		if (!hasPrevious()) return false;
+		if (bookmarks.isDragActive()) {
+			if (!bookmarks.browseDragNamespace(-1)) return false;
+			resetPage.run();
+			return true;
+		}
 		bookmarks.changeNamespace(-1);
 		resetPage.run();
 		return true;
 	}
 
 	@Override public boolean hasNext() {
+		if (bookmarks.isDragActive()) return getPageNumber() < getPageCount() - 1;
 		return getPageCount() > 1 || !bookmarks.page().bookmarks.isEmpty();
 	}
-	@Override public boolean hasPrevious() { return getPageCount() > 1; }
+	@Override public boolean hasPrevious() { return bookmarks.isDragActive() ? getPageNumber() > 0 : getPageCount() > 1; }
 	@Override public int getPageCount() { return bookmarks.getPages().size(); }
 	@Override public int getPageNumber() { return bookmarks.getNamespace(); }
 
