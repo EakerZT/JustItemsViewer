@@ -1,7 +1,7 @@
 package eakerzt.jiv.gui.bookmarks;
 
 import com.mojang.serialization.Codec;
-
+import eakerzt.jiv.api.constants.VanillaTypes;
 import eakerzt.jiv.api.helpers.ICodecHelper;
 import eakerzt.jiv.api.helpers.IGuiHelper;
 import eakerzt.jiv.api.ingredients.ITypedIngredient;
@@ -13,6 +13,7 @@ import eakerzt.jiv.api.runtime.IBookmarkManager;
 import eakerzt.jiv.api.runtime.IIngredientManager;
 import eakerzt.jiv.common.config.IClientConfig;
 import eakerzt.jiv.common.input.UserInput;
+import eakerzt.jiv.gui.bookmarks.planning.BookmarkGroupSummary;
 import eakerzt.jiv.gui.bookmarks.planning.RecipeChain;
 import eakerzt.jiv.gui.config.IBookmarkConfig;
 import eakerzt.jiv.gui.overlay.bookmarks.BookmarkOverlay;
@@ -20,6 +21,8 @@ import eakerzt.jiv.gui.overlay.elements.IElement;
 import eakerzt.jiv.gui.overlay.ingredients.IIngredientGridSource;
 
 import net.minecraft.core.RegistryAccess;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
 
 import org.jspecify.annotations.Nullable;
 
@@ -701,6 +704,65 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 	public Optional<RecipeChain.Result> calculation(int group) {
 		getElements();
 		return Optional.ofNullable(calculations.get(group));
+	}
+
+	public record GroupSummary(
+			BookmarkGroupSummary amounts,
+			Map<Object, ITypedIngredient<?>> materials,
+			Map<Object, Long> containers,
+			List<CraftingRequirement> craftingRequirements) {}
+
+	public record CraftingRequirement(ITypedIngredient<?> ingredient, long amount,
+			eakerzt.jiv.api.gui.drawable.IDrawable icon) {}
+
+	public GroupSummary groupSummary(int group, Map<Object, Long> inventory) {
+		getElements();
+		var recipes = new ArrayList<RecipeChain.Recipe>();
+		var targets = new LinkedHashMap<Object, Long>();
+		var ingredients = materials(group);
+		for (var bookmark : getGroupBookmarks(group)) {
+			var data = recipeData.get(bookmark);
+			if (data != null) recipes.add(data.asRecipe(bookmark, state(bookmark), ingredientManager));
+			else if (bookmark.getType() == BookmarkType.INGREDIENT) {
+				var ingredient = bookmark.getElement().getTypedIngredient();
+				var key = BookmarkRecipeData.key(ingredient, ingredientManager);
+				ingredients.put(key, ingredient);
+				targets.merge(key, Math.max(1, state(bookmark).multiplier), RecipeChain::add);
+			}
+		}
+		var settings = page().groups.get(group);
+		var amounts = BookmarkGroupSummary.calculate(
+				recipes, settings != null && settings.linked, targets, inventory);
+		var containers = new LinkedHashMap<Object, Long>();
+		for (var bookmark : getGroupBookmarks(group)) {
+			// Only crafting recipes consume items according to the crafting-remainder contract.
+			if (!(bookmark instanceof RecipeBookmark<?, ?> recipe)
+					|| !(recipe.getRecipe() instanceof RecipeHolder<?> holder)
+					|| !(holder.value() instanceof CraftingRecipe crafting)) continue;
+			var data = recipeData.get(bookmark);
+			if (data == null) continue;
+			long crafts = amounts.calculation().crafts().getOrDefault(bookmark, 0L);
+			if (crafts == 0) continue;
+			for (var returned : data.craftingRemainders(crafting, state(bookmark)).values()) {
+				ingredientManager.createTypedIngredient(VanillaTypes.ITEM_STACK, returned, false)
+						.ifPresent(typed -> {
+							var key = BookmarkRecipeData.key(typed, ingredientManager);
+							ingredients.put(key, typed);
+							containers.merge(key, RecipeChain.multiply(crafts, returned.getCount()), RecipeChain::add);
+						});
+			}
+		}
+		var craftingRequirements = new ArrayList<CraftingRequirement>();
+		for (var bookmark : getGroupBookmarks(group)) {
+			var needed = amounts.calculation().neededByRecipe().get(bookmark);
+			if (needed == null || needed.isEmpty()) continue;
+			var icon = bookmark.getElement().createRenderOverlay();
+			needed.forEach((key, amount) -> {
+				var ingredient = ingredients.get(key);
+				if (ingredient != null) craftingRequirements.add(new CraftingRequirement(ingredient, amount, icon));
+			});
+		}
+		return new GroupSummary(amounts, Map.copyOf(ingredients), Map.copyOf(containers), List.copyOf(craftingRequirements));
 	}
 
 	public Map<Object, eakerzt.jiv.api.ingredients.ITypedIngredient<?>> materials(int group) {

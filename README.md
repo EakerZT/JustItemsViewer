@@ -8,9 +8,9 @@ Just Items Viewer (**JIV**) is an item and recipe viewer for **Minecraft 26.1.2 
 
 | Minecraft | Mod Loader | Current Version |
 | --- | --- | --- |
-| 26.1.2 | NeoForge | 0.0.1-alpha-3 |
+| 26.1.2 | NeoForge | 0.0.1-alpha-4 |
 
-Release notes: [0.0.1-alpha-3](CHANGELOG.md). This version is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3).
+Release notes: [0.0.1-alpha-4](CHANGELOG.md). Maven coordinates: [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4).
 
 ## Features
 
@@ -27,7 +27,7 @@ Release notes: [0.0.1-alpha-3](CHANGELOG.md). This version is published to [Mave
 ## Installation
 
 1. Install **Minecraft 26.1.2** with **NeoForge 26.1.2.99 or a newer NeoForge release for Minecraft 26.1.2**.
-2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-3.jar` in your game instance's `mods` folder.
+2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-4.jar` in your game instance's `mods` folder.
 3. Launch the game and open your inventory.
 
 Settings and search are included. **No separate MezzConfig, MezzConfigGUI, or search library installation is required.**
@@ -99,6 +99,8 @@ The icon beside the top-left navigation arrow shows the **default subgroup's** c
 In recipe mode, hovering any material colors its recipe's visible cells: blue for outputs, green for inputs, purple for leftover outputs. The hovered cell's normal highlight is layered above this background. Holding Shift is not required.
 
 Replaceable inputs show `#` for a recognized tag, or `≡` for a candidate list. Hover to see the list; its current selection has a green border. Hold `Shift` to focus the tooltip, scroll its candidate list, and query individual candidates with left/right-click or `R`/`U`. Non-consumed inputs show the same green `∞` as recipe slots. `Shift` on a linked subgroup also shows aggregate required/output quantities.
+
+Hover a group's left bracket (or the top counter for the default group) to see final outputs, material requirements, and leftovers including returned containers from crafting recipes. Hold `Shift` to compare against accessible slots in the current container, excluding crafting output slots; outside a container screen, use player inventory. Outputs and returns share a grid, with returned quantities in yellow. Missing quantities appear in red and available quantities in green in the same materials grid; the same ingredient has separate cells when both are present. Outputs, leftovers, and returned containers also retain separate cells even when their ingredient types match. While holding Shift, a separate required-crafts grid shows intermediate quantities still needed by downstream recipes, excluding stock and rounded batch leftovers, with the supplying machine/category badge on each icon. Independent ingredient bookmarks are additional shopping-list targets, using their saved amount or one when no amount is saved. Inventory comparison does not increase the saved output target. Materials and outputs use horizontal icon grids with quantity overlays, wrapping to additional rows without omitting entries.
 
 ### Subgroups and Pages
 

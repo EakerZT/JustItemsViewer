@@ -38,6 +38,8 @@ public final class RecipeChain {
 			Map<Object, Long> inputs,
 			Map<Object, Long> outputs,
 			Map<Object, Long> remainders,
+			Map<Object, Long> inventoryUsed,
+			Map<Object, Map<Object, Long>> neededByRecipe,
 			Map<Object, Set<Object>> dependencies,
 			boolean cycle,
 			boolean uncertain,
@@ -50,6 +52,7 @@ public final class RecipeChain {
 	public static Result calculate(
 			List<Recipe> recipes, boolean linked, Map<Object, Long> inventory) {
 		Map<Object, Long> stock = new HashMap<>(inventory);
+		Map<Object, Long> inventoryUsed = new LinkedHashMap<>();
 		Map<Object, Recipe> byId = new LinkedHashMap<>();
 		for (Recipe recipe : recipes) {
 			if (byId.put(recipe.id(), recipe) != null)
@@ -142,6 +145,7 @@ public final class RecipeChain {
 				else {
 					long available = Math.max(0, stock.getOrDefault(input.key(), 0L));
 					long taken = Math.min(amount, available);
+					if (taken > 0) inventoryUsed.merge(input.key(), taken, RecipeChain::add);
 					amount -= taken;
 					stock.put(input.key(), available - taken);
 					required.merge(input.key(), amount, RecipeChain::add);
@@ -178,20 +182,32 @@ public final class RecipeChain {
 			}
 		}
 		reusable.forEach(
-				(key, amount) ->
+				(key, amount) -> {
+					long available = Math.max(0, stock.getOrDefault(key, 0L));
+					if (available > 0) inventoryUsed.merge(key, Math.min(amount, available), RecipeChain::add);
 						external.merge(
 								key,
-								Math.max(0, amount - stock.getOrDefault(key, 0L)),
-								RecipeChain::add));
+								Math.max(0, amount - available),
+								RecipeChain::add);
+				});
 		external.values().removeIf(amount -> amount == 0);
 		overflow |= required.containsValue(Long.MAX_VALUE) || crafts.containsValue(Long.MAX_VALUE);
 		Map<Object, Set<Object>> immutableDependencies = new LinkedHashMap<>();
 		dependencies.forEach((key, value) -> immutableDependencies.put(key, Set.copyOf(value)));
+		Map<Object, Map<Object, Long>> neededByRecipe = new LinkedHashMap<>();
+		demand.forEach((key, amount) -> {
+			if (amount > 0 && key instanceof Edge edge)
+				neededByRecipe.computeIfAbsent(edge.recipe(), ignored -> new LinkedHashMap<>())
+						.put(edge.material(), amount);
+		});
+		neededByRecipe.replaceAll((key, value) -> Map.copyOf(value));
 		return new Result(
 				Map.copyOf(crafts),
 				Map.copyOf(external),
 				Map.copyOf(finals),
 				Map.copyOf(remainders),
+				Map.copyOf(inventoryUsed),
+				Map.copyOf(neededByRecipe),
 				Map.copyOf(immutableDependencies),
 				cycle[0],
 				uncertain,

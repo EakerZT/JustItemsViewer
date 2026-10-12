@@ -55,6 +55,6 @@ registration.addGuiContainerHandler(MachineScreen.class,
 
 源码：[IGuiHandlerRegistration](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/registration/IGuiHandlerRegistration.java)、[IGuiContainerHandler](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/handlers/IGuiContainerHandler.java)、[IGhostIngredientHandler](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/handlers/IGhostIngredientHandler.java)。
 
-## 配方窗口扩展（alpha-2 起）
+## 配方窗口扩展
 
-配方专属标题、原生左右面板、原料查询、每页数量限制及直接鼠标捕获见 [配方窗口扩展 API](Recipe-Screen-Extensions.md)，包含完整 Java 示例。这些 API 从 `0.0.1-alpha-2` 起提供；`0.0.1-alpha-1` 不包含它们。
+配方专属标题、原生左右面板、原料查询、每页数量限制及直接鼠标捕获见 [配方窗口扩展 API](Recipe-Screen-Extensions.md)，包含完整 Java 示例。

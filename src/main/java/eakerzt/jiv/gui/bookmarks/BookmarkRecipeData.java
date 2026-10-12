@@ -1,5 +1,6 @@
 package eakerzt.jiv.gui.bookmarks;
 
+import eakerzt.jiv.api.gui.ingredient.IRecipeSlotDrawable;
 import eakerzt.jiv.api.gui.ingredient.IRecipeSlotView;
 import eakerzt.jiv.api.ingredients.ITypedIngredient;
 import eakerzt.jiv.api.ingredients.subtypes.UidContext;
@@ -10,18 +11,28 @@ import eakerzt.jiv.api.runtime.IIngredientManager;
 import eakerzt.jiv.gui.bookmarks.planning.RecipeChain;
 
 import net.minecraft.tags.TagKey;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.CraftingInput;
+import net.minecraft.world.item.crafting.CraftingRecipe;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.function.ToLongFunction;
 
-public record BookmarkRecipeData(List<Slot> slots) {
+public record BookmarkRecipeData(List<Slot> slots, Map<Integer, Integer> craftingSlots) {
+	public BookmarkRecipeData(List<Slot> slots) {
+		this(slots, Map.of());
+	}
+
 	public BookmarkRecipeData {
 		slots = List.copyOf(slots);
+		craftingSlots = Map.copyOf(craftingSlots);
 	}
 
 	public record Key(Object type, Object uid) {}
@@ -134,7 +145,7 @@ public record BookmarkRecipeData(List<Slot> slots) {
 														slot.reusable(),
 														slot.chance(),
 														slot.tagKey()))
-						.toList());
+						.toList(), craftingSlots);
 	}
 
 	public boolean moveInput(
@@ -193,17 +204,32 @@ public record BookmarkRecipeData(List<Slot> slots) {
 	public static <R> BookmarkRecipeData create(
 			RecipeBookmark<R, ?> bookmark, IRecipeManager manager, IFocusFactory focuses) {
 		List<Slot> slots = new ArrayList<>();
+		var craftingSlots = new LinkedHashMap<Integer, Integer>();
 		manager.createRecipeLayoutDrawable(
 						bookmark.getRecipeCategory(),
 						bookmark.getRecipe(),
 						focuses.getEmptyFocusGroup())
 				.ifPresent(
 						layout -> {
+							var inputs = layout.getRecipeSlotsView().getSlotViews().stream()
+									.filter(s -> s.getRole() == RecipeIngredientRole.INPUT).toList();
+							var xs = inputs.stream().filter(IRecipeSlotDrawable.class::isInstance)
+									.map(s -> ((IRecipeSlotDrawable) s).getAreaIncludingBackground().getX())
+									.distinct().sorted().toList();
+							var ys = inputs.stream().filter(IRecipeSlotDrawable.class::isInstance)
+									.map(s -> ((IRecipeSlotDrawable) s).getAreaIncludingBackground().getY())
+									.distinct().sorted().toList();
 							int index = 0;
 							for (IRecipeSlotView slot :
 									layout.getRecipeSlotsView().getSlotViews()) {
 								List<ITypedIngredient<?>> candidates =
 										slot.getAllIngredients().toList();
+								if (inputs.size() == 9 && xs.size() == 3 && ys.size() == 3
+										&& slot.getRole() == RecipeIngredientRole.INPUT
+										&& slot instanceof IRecipeSlotDrawable drawable) {
+									var area = drawable.getAreaIncludingBackground();
+									craftingSlots.put(index, xs.indexOf(area.getX()) + ys.indexOf(area.getY()) * 3);
+								}
 								if (!candidates.isEmpty())
 									slots.add(
 											new Slot(
@@ -216,8 +242,34 @@ public record BookmarkRecipeData(List<Slot> slots) {
 								index++;
 							}
 						});
-		return new BookmarkRecipeData(slots)
+		return new BookmarkRecipeData(slots, craftingSlots)
 				.selectOutput(bookmark.getOutputSlot(), bookmark.getOutputChoice());
+	}
+
+	/** Ask the actual recipe, including overrides such as tools returned with changed components. */
+	public Map<Integer, ItemStack> craftingRemainders(
+			CraftingRecipe recipe, BookmarkState state) {
+		var result = new LinkedHashMap<Integer, ItemStack>();
+		if (craftingSlots.isEmpty()) return result;
+		var items = new ArrayList<>(Collections.nCopies(9, ItemStack.EMPTY));
+		for (var slot : slots) {
+			var index = craftingSlots.get(slot.index());
+			if (index != null) items.set(index, slot.selected(state).getItemStack()
+					.orElse(ItemStack.EMPTY).copy());
+		}
+		var positioned = CraftingInput.ofPositioned(3, 3, items);
+		var input = positioned.input();
+		if (input.size() == 0) return result;
+		var returned = recipe.getRemainingItems(input);
+		for (var slot : slots) {
+			var index = craftingSlots.get(slot.index());
+			if (index == null || slot.reusable() || state.removedSlots.contains(slot.index())) continue;
+			int x = index % 3 - positioned.left(), y = index / 3 - positioned.top();
+			if (x < 0 || x >= input.width() || y < 0 || y >= input.height()) continue;
+			var stack = returned.get(x + y * input.width());
+			if (!stack.isEmpty()) result.put(slot.index(), stack.copy());
+		}
+		return result;
 	}
 
 	public RecipeChain.Recipe asRecipe(

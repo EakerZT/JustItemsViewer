@@ -2,6 +2,24 @@
 
 [English README](README.md) | [中文 README](README-zh-CN.md)
 
+## 0.0.1-alpha-4 — 2026-10-12
+
+### English
+
+- Add bookmark-group summary tooltips for final outputs, required materials, leftovers, and crafting container returns; hold `Shift` to compare accessible inventory and show intermediate quantities still requiring crafting.
+- Include independent item and fluid bookmarks in material planning; display available, missing, leftover, and returned quantities separately, with machine/category badges for intermediate crafts.
+- Improve bookmark-group dragging, workspace navigation, recipe-tree layout, and recipe bookmark removal, including removal of individual inputs and persistence of removed slots.
+- Fix recipe transfer inventory handling and bookmark page anchoring.
+- Update developer Wiki dependency examples and remove alpha-version availability restrictions from API documentation.
+
+### 简体中文
+
+- 新增书签组汇总提示，展示最终产物、材料需求、剩余产物和合成容器返还；按住 `Shift` 对照可用库存，并展示中间材料的待合成数量。
+- 独立物品与流体书签参与备料计算；分别展示已有、缺少、剩余与返还数量，并为待合成材料附上机器／分类角标。
+- 改进书签组拖拽、书签空间导航、制作树布局与配方取消收藏，支持移除单个原料并保存移除状态。
+- 修复配方填充的库存处理和书签分页锚点。
+- 更新开发者 Wiki 依赖示例，移除 API 文档中的 alpha 版本适用限制。
+
 ## 0.0.1-alpha-3 — 2026-10-08
 
 ### English

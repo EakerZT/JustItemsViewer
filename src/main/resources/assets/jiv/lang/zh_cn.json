@@ -651,5 +651,10 @@
   "jiv.bookmarks.mode.switch": "点击切换默认分组的布局",
   "jiv.bookmarks.drag.new_before": "松开鼠标：在当前书签空间前创建新空间并移入",
   "jiv.bookmarks.drag.new_after": "松开鼠标：在当前书签空间后创建新空间并移入",
-  "jiv.bookmarks.drag.duplicate": "目标区域已有相同收藏，无法移入"
+  "jiv.bookmarks.drag.duplicate": "目标区域已有相同收藏，无法移入",
+  "jiv.bookmarks.summary.outputs": "合成产物 / 返还",
+  "jiv.bookmarks.summary.crafting_needed": "待合成数量",
+  "jiv.bookmarks.summary.required": "所需材料",
+  "jiv.bookmarks.summary.shift": "按住 Shift 对照可用库存",
+  "jiv.bookmarks.summary.complete": "所需材料已备齐"
 }

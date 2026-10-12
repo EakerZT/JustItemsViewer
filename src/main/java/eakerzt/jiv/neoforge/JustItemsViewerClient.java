@@ -3,19 +3,20 @@ package eakerzt.jiv.neoforge;
 import eakerzt.jiv.api.IModPlugin;
 import eakerzt.jiv.api.constants.ModIds;
 import eakerzt.jiv.common.Internal;
-import eakerzt.jiv.common.gui.JivGuiColors;
-import eakerzt.jiv.common.gui.RecipeSlotOptionsTooltipComponent;
 import eakerzt.jiv.common.gui.IngredientTooltipComponent;
 import eakerzt.jiv.common.gui.IngredientsTooltipComponent;
+import eakerzt.jiv.common.gui.JivGuiColors;
+import eakerzt.jiv.common.gui.RecipeSlotOptionsTooltipComponent;
 import eakerzt.jiv.common.network.IConnectionToServer;
 import eakerzt.jiv.gui.config.InternalKeyMappings;
+import eakerzt.jiv.gui.overlay.bookmarks.BookmarkGroupTooltipComponent;
 import eakerzt.jiv.gui.overlay.bookmarks.PreviewTooltipComponent;
 import eakerzt.jiv.gui.recipes.InteractiveIngredientGridTooltipComponent;
-import eakerzt.jiv.library.gui.ingredients.TagContentTooltipComponent;
 import eakerzt.jiv.library.config.JivConfigData;
 import eakerzt.jiv.library.config.JivConfigRegistration;
-import eakerzt.jiv.library.plugins.vanilla.crafting.JivShapedRecipe;
+import eakerzt.jiv.library.gui.ingredients.TagContentTooltipComponent;
 import eakerzt.jiv.library.plugins.vanilla.cooking.JivSmeltingRecipe;
+import eakerzt.jiv.library.plugins.vanilla.crafting.JivShapedRecipe;
 import eakerzt.jiv.library.recipes.RecipeSerializers;
 import eakerzt.jiv.library.startup.JivStarter;
 import eakerzt.jiv.library.startup.StartData;
@@ -27,6 +28,7 @@ import eakerzt.jiv.neoforge.network.NetworkHandler;
 import eakerzt.jiv.neoforge.plugins.neoforge.NeoForgeGuiPlugin;
 import eakerzt.jiv.neoforge.startup.ForgePluginFinder;
 import eakerzt.jiv.neoforge.startup.StartEventObserver;
+
 import net.minecraft.client.KeyMapping;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.Identifier;
@@ -114,6 +116,7 @@ public class JustItemsViewerClient {
 		event.register(RecipeSlotOptionsTooltipComponent.class, Function.identity());
 		event.register(TagContentTooltipComponent.class, Function.identity());
 		event.register(InteractiveIngredientGridTooltipComponent.class, Function.identity());
+		event.register(BookmarkGroupTooltipComponent.class, Function.identity());
 	}
 
 	private ResourceManagerReloadListener createReloadListener() {

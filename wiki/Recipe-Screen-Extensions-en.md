@@ -2,7 +2,6 @@
 
 # Recipe-screen extension API
 
-**Availability: JIV `0.0.1-alpha-2` and later, published to Maven Central.** Use alpha-2 or newer at compile time and runtime. The `0.0.1-alpha-1` artifact does not contain these methods.
 
 Use this API for recipe-specific titles, left/right ingredient panels and direct mouse gestures in the recipe screen, without Mixins or implementation classes. Register per-layout extensions in `IRecipeCategory.createRecipeExtras`. Extensions do not change global crafting-station registration or execute server-side gameplay operations.
 

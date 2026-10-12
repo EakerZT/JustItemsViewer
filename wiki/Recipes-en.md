@@ -103,11 +103,11 @@ registration.addIngredientInfo(Items.STONE,
 
 Source: [IRecipeCategory](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/recipe/category/IRecipeCategory.java), [IRecipeLayoutBuilder](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/builder/IRecipeLayoutBuilder.java), [IRecipeRegistration](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/registration/IRecipeRegistration.java).
 
-## Per-page limits and screen extensions (since alpha-2)
+## Per-page limits and screen extensions
 
-Override `getMaxRecipesPerPage()` to cap visible recipes, for example `return 1` for a 3D preview. Values below one become one; the default is unlimited. Register `IRecipeScreenExtension` with `IRecipeExtrasBuilder.addScreenExtension()` inside `createRecipeExtras`. See [Recipe-screen extensions](Recipe-Screen-Extensions-en.md) for title, coordinate, input capture and native panel contracts. Changing category dimensions invalidates cached layouts at the next layout update. These additions are available starting with `0.0.1-alpha-2`, not alpha-1.
+Override `getMaxRecipesPerPage()` to cap visible recipes, for example `return 1` for a 3D preview. Values below one become one; the default is unlimited. Register `IRecipeScreenExtension` with `IRecipeExtrasBuilder.addScreenExtension()` inside `createRecipeExtras`. See [Recipe-screen extensions](Recipe-Screen-Extensions-en.md) for title, coordinate, input capture and native panel contracts. Changing category dimensions invalidates cached layouts at the next layout update.
 
-## In-slot fluid amount labels (since alpha-2)
+## In-slot fluid amount labels
 
 `IRecipeSlotBuilder.setShowFluidAmount(boolean)` enables or disables a fluid amount label at the slot's bottom-right. It is off by default, independent of fluid fill settings and tooltip capacity. No custom renderer or amount overlay is required.
 
@@ -127,9 +127,8 @@ This displays `10K`, fills the tank at 10,000 / 16,000, and retains amount/capac
 - Does not replace a custom overlay. Draw order: ingredient, custom overlay, fluid amount, non-consumed/chance decorations, candidate badge, hover foreground.
 - This is a presentation option; ingredient indexing, consumption and server quantities are unchanged.
 
-This method is included in the Maven Central `0.0.1-alpha-2` artifact. Use alpha-2 or newer for both compilation and runtime.
 
-## Non-consumed and chance markers (since alpha-2)
+## Non-consumed and chance markers
 
 JIV provides native slot decorations for item/fluid inputs and outputs, as well as other ingredient types. Both are off by default and enabled through `IRecipeSlotBuilder`. No mod-specific texture, overlay or tooltip callback is needed.
 
@@ -158,4 +157,4 @@ builder.addOutputSlot(60, 50).add(Fluids.LAVA, 1000)
 - Metadata belongs to the slot and follows its displayed ingredient, including cycling and overrides. It is not configured separately per candidate.
 - These are presentation APIs. They do not implement consumption, production, random rolls, server execution or ingredient indexing. Input slots use the generic “Chance” tooltip; the recipe defines its meaning.
 
-These methods are available from Maven Central starting with `0.0.1-alpha-2`. EndlessTech can still use `-PjivDev` for source debugging and retains its older Mixin compatibility path.
+EndlessTech can still use `-PjivDev` for source debugging and retains its older Mixin compatibility path.

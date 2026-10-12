@@ -600,5 +600,10 @@
   "jiv.bookmarks.mode.switch": "Click to switch the default group layout",
   "jiv.bookmarks.drag.new_before": "Release to create a space before this one and move here",
   "jiv.bookmarks.drag.new_after": "Release to create a space after this one and move here",
-  "jiv.bookmarks.drag.duplicate": "This destination already contains the same bookmark"
+  "jiv.bookmarks.drag.duplicate": "This destination already contains the same bookmark",
+  "jiv.bookmarks.summary.outputs": "Outputs / returns",
+  "jiv.bookmarks.summary.crafting_needed": "Required crafts",
+  "jiv.bookmarks.summary.required": "Required materials",
+  "jiv.bookmarks.summary.shift": "Hold Shift to compare with available inventory",
+  "jiv.bookmarks.summary.complete": "All required materials are available"
 }

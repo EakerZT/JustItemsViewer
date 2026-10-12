@@ -53,6 +53,6 @@ Targets use absolute screen coordinates. `doStart=false` is a preview and must n
 
 Source: [IGuiHandlerRegistration](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/registration/IGuiHandlerRegistration.java), [IGuiContainerHandler](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/handlers/IGuiContainerHandler.java), [IGhostIngredientHandler](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/handlers/IGhostIngredientHandler.java).
 
-## Recipe-screen extensions (since alpha-2)
+## Recipe-screen extensions
 
-Recipe-specific titles, native side panels, ingredient queries, pagination limits and direct mouse capture are documented in [Recipe-screen extension API](Recipe-Screen-Extensions-en.md), with a complete Java example. These APIs are included in `0.0.1-alpha-2` and later; they are absent from `0.0.1-alpha-1`.
+Recipe-specific titles, native side panels, ingredient queries, pagination limits and direct mouse capture are documented in [Recipe-screen extension API](Recipe-Screen-Extensions-en.md), with a complete Java example.

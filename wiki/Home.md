@@ -6,13 +6,13 @@ Integrate JIV with your NeoForge mod: recipes, ingredients, GUIs, transfer, sear
 
 为 NeoForge 模组接入 JIV：配方、原料、界面、配方转移、搜索、运行时操作与配置。
 
-**JIV 0.0.1-alpha-3 · Minecraft 26.1.2 · NeoForge 26.1.2.99 · Java 25**
+**JIV 0.0.1-alpha-4 · Minecraft 26.1.2 · NeoForge 26.1.2.99 · Java 25**
 
 ## Maven Central / 获取依赖
 
-JIV is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3). Add the following dependencies to your NeoForge ModDevGradle project.
+JIV uses the following [Maven Central] coordinates(https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). Add the following dependencies to your NeoForge ModDevGradle project.
 
-JIV 已发布到 Maven Central。在 NeoForge ModDevGradle 工程中添加以下依赖即可获取：
+在 NeoForge ModDevGradle 工程中使用以下 Maven Central 坐标；发布同步前可按快速开始中的本地 JAR 方式接入：
 
 ```kotlin
 repositories {
@@ -20,8 +20,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-3")
-    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-3")
+    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
+    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
 }
 ```
 
@@ -39,7 +39,7 @@ The mod JAR contains the API and implementation. `compileOnly` supports compilat
 | Recipe display / 配方显示 | [Recipes](Recipes-en.md) | [配方 API](Recipes.md) |
 | Ingredient types / 原料类型 | [Ingredients](Ingredients-en.md) | [原料 API](Ingredients.md) |
 | Screens / 界面 | [GUI integration](GUI-Integration-en.md) | [界面集成](GUI-Integration.md) |
-| Recipe-screen extensions / 配方窗口扩展（alpha-2 起） | [Screen extensions](Recipe-Screen-Extensions-en.md) | [配方窗口扩展](Recipe-Screen-Extensions.md) |
+| Recipe-screen extensions / 配方窗口扩展 | [Screen extensions](Recipe-Screen-Extensions-en.md) | [配方窗口扩展](Recipe-Screen-Extensions.md) |
 | Inventory filling / 背包填充 | [Recipe transfer](Recipe-Transfer-en.md) | [配方转移](Recipe-Transfer.md) |
 | Runtime operations / 运行时操作 | [Runtime API](Runtime-en.md) | [运行时 API](Runtime.md) |
 | Extension hooks / 扩展入口 | [Advanced extensions](Advanced-en.md) | [高级扩展](Advanced.md) |

@@ -107,11 +107,11 @@ registration.addIngredientInfo(Items.STONE,
 
 源码：[IRecipeCategory](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/recipe/category/IRecipeCategory.java)、[IRecipeLayoutBuilder](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/gui/builder/IRecipeLayoutBuilder.java)、[IRecipeRegistration](https://github.com/EakerZT/JustItemsViewer/blob/main/src/main/java/eakerzt/jiv/api/registration/IRecipeRegistration.java)。
 
-## 每页数量限制与屏幕扩展（alpha-2 起）
+## 每页数量限制与屏幕扩展
 
-覆写 `getMaxRecipesPerPage()` 限制每页条数，例如三维预览返回 `1`；小于一的值按一处理，默认不限。通过 `createRecipeExtras` 中的 `IRecipeExtrasBuilder.addScreenExtension()` 注册 `IRecipeScreenExtension`，接入配方标题、左右面板及直接鼠标操作。坐标、捕获和原生绘制约定见 [配方窗口扩展 API](Recipe-Screen-Extensions.md)。分类尺寸变化会在下一次布局更新时使缓存失效。这些新增方法从 `0.0.1-alpha-2` 起提供，alpha-1 不包含它们。
+覆写 `getMaxRecipesPerPage()` 限制每页条数，例如三维预览返回 `1`；小于一的值按一处理，默认不限。通过 `createRecipeExtras` 中的 `IRecipeExtrasBuilder.addScreenExtension()` 注册 `IRecipeScreenExtension`，接入配方标题、左右面板及直接鼠标操作。坐标、捕获和原生绘制约定见 [配方窗口扩展 API](Recipe-Screen-Extensions.md)。分类尺寸变化会在下一次布局更新时使缓存失效。
 
-## 槽内流体数量文字（alpha-2 起）
+## 槽内流体数量文字
 
 `IRecipeSlotBuilder.setShowFluidAmount(boolean)` 开启或关闭槽右下角的流体数量文字，默认关闭。它与 `setFluidRenderer` 的液面配置和 `showCapacity` 的 Tooltip 设置独立，不需要替换 renderer 或使用自己的数量 overlay。
 
@@ -131,9 +131,8 @@ builder.addInputSlot(20, 40)
 - 自定义 `setOverlay(...)` 不会被覆盖；绘制顺序为原料、自定义 overlay、流体数量文字、无消耗/概率标记、候选徽标与悬停前景。
 - 此显示选项不影响查询索引、原料消耗或服务端数量。
 
-该方法已包含在 Maven Central 的 `0.0.1-alpha-2` 中，编译与运行均需依赖 alpha-2 或更新版本。
 
-## 无消耗与概率标记（alpha-2 起）
+## 无消耗与概率标记
 
 JIV 内置槽位标记，物品与流体的输入、输出均可使用；也适用于其他原料类型。标记默认关闭，通过 `IRecipeSlotBuilder` 开启，无需模组提供贴图、overlay 或 Tooltip 回调。
 
@@ -166,4 +165,4 @@ builder.addOutputSlot(60, 50).add(Fluids.LAVA, 1000)
 - 标记属于槽位，跟随当前候选原料和显示覆盖；概率不随候选分别变化，需要分类在创建布局时提供槽位对应值。
 - 这些 API 只提供展示，不决定物品/流体是否真正消耗、是否随机产出，不修改服务端处理或查询索引。输入槽的概率也使用通用“概率”说明，具体含义由配方定义。
 
-这些方法从 Maven Central 的 `0.0.1-alpha-2` 起提供。EndlessTech 的 `-PjivDev` 仍可用于源码联调，其旧版 Mixin 兼容路径仍保留。
+EndlessTech 的 `-PjivDev` 仍可用于源码联调，其旧版 Mixin 兼容路径仍保留。

@@ -1,21 +1,29 @@
 package eakerzt.jiv.gui.overlay.bookmarks;
 
 import com.mojang.blaze3d.platform.InputConstants;
-
+import eakerzt.jiv.api.constants.VanillaTypes;
 import eakerzt.jiv.api.gui.handlers.IGuiProperties;
 import eakerzt.jiv.api.recipe.RecipeIngredientRole;
+import eakerzt.jiv.api.runtime.IIngredientManager;
 import eakerzt.jiv.common.Internal;
 import eakerzt.jiv.common.gui.JivTooltip;
 import eakerzt.jiv.common.input.*;
 import eakerzt.jiv.common.util.ImmutableRect2i;
 import eakerzt.jiv.gui.bookmarks.*;
+import eakerzt.jiv.gui.bookmarks.planning.RecipeChain;
 import eakerzt.jiv.gui.overlay.elements.IElement;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientGridWithNavigation;
 
+import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
 import net.minecraft.network.chat.Component;
+import net.minecraft.world.inventory.ResultSlot;
+import net.minecraft.world.item.ItemStack;
+
+import org.jspecify.annotations.Nullable;
 
 import java.util.*;
 
@@ -30,6 +38,10 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	private boolean movingGroup;
 	private int draggedGroup = -1;
 	private List<BookmarkOverlay.DraggedCell> draggedCells = List.of();
+	private List<IElement<?>> summaryLayout = List.of();
+	private int summaryGroup = -1;
+	private Map<Object, Long> summaryInventory = Map.of();
+	private BookmarkList.@Nullable GroupSummary cachedSummary;
 
 	private boolean startGroupDrag(UserInput input) {
 		if (!Internal.getClientConfigs().getClientConfig().dragToRearrangeBookmarksEnabled().get())
@@ -502,6 +514,36 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		JivTooltip tooltip = new JivTooltip();
 		tooltip.add(Component.translatable(header().contains(x, y)
 				? "jiv.bookmarks.workspace" : group == 0 ? "jiv.bookmarks.ungrouped" : "jiv.bookmarks.group"));
+		var minecraft = Minecraft.getInstance();
+		var manager = Internal.getJivRuntime().getIngredientManager();
+		boolean compareInventory = minecraft.hasShiftDown();
+		var inventory = new LinkedHashMap<Object, Long>();
+		if (compareInventory && minecraft.player != null) {
+			if (minecraft.screen instanceof AbstractContainerScreen<?> container) {
+				for (var slot : container.getMenu().slots) {
+					if (slot instanceof ResultSlot || !slot.mayPickup(minecraft.player)) continue;
+					addInventory(inventory, slot.getItem(), manager);
+				}
+			} else {
+				var source = minecraft.player.getInventory();
+				for (int i = 0; i < source.getContainerSize(); i++) addInventory(inventory, source.getItem(i), manager);
+			}
+		}
+		var currentLayout = bookmarks.getElements();
+		if (cachedSummary == null || summaryGroup != group || summaryLayout != currentLayout
+				|| !summaryInventory.equals(inventory)) {
+			cachedSummary = bookmarks.groupSummary(group, inventory);
+			summaryGroup = group;
+			summaryLayout = currentLayout;
+			summaryInventory = Map.copyOf(inventory);
+		}
+		var summary = cachedSummary;
+		var component = new BookmarkGroupTooltipComponent(summary, compareInventory, manager,
+				minecraft.font, graphics.guiWidth());
+		if (component.getHeight(minecraft.font) > 0) tooltip.add(component);
+		if (!compareInventory) tooltip.add(Component.translatable("jiv.bookmarks.summary.shift"));
+		else if (summary.amounts().missing().isEmpty() && !summary.amounts().required().isEmpty())
+			tooltip.add(Component.translatable("jiv.bookmarks.summary.complete").withStyle(ChatFormatting.GREEN));
 		tooltip.add(Component.translatable("jiv.bookmarks.controls.group"));
 		tooltip.add(Component.translatable("jiv.bookmarks.controls.group_drag"));
 		if (header().contains(x, y)) tooltip.addKeyUsageComponent("jiv.bookmarks.controls.workspace_remove", Internal.getKeyMappings().getBookmark());
@@ -519,5 +561,13 @@ public final class BookmarkGroupController implements IUserInputHandler {
 								tooltip.add(Component.translatable("jiv.bookmarks.overflow"));
 						});
 		tooltip.draw(graphics, x, y);
+	}
+
+	private static void addInventory(Map<Object, Long> inventory, ItemStack stack,
+			IIngredientManager manager) {
+		if (stack.isEmpty()) return;
+		manager.createTypedIngredient(VanillaTypes.ITEM_STACK, stack, false)
+				.ifPresent(ingredient -> inventory.merge(BookmarkRecipeData.key(ingredient, manager),
+						(long) stack.getCount(), RecipeChain::add));
 	}
 }

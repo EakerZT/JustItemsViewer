@@ -8,9 +8,9 @@ Just Items Viewer（**JIV**）是一款面向 **Minecraft 26.1.2 / NeoForge** �
 
 | Minecraft | 模组加载器 | 当前版本 |
 | --- | --- | --- |
-| 26.1.2 | NeoForge | 0.0.1-alpha-3 |
+| 26.1.2 | NeoForge | 0.0.1-alpha-4 |
 
-更新说明：[0.0.1-alpha-3](CHANGELOG.md)。此版本已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-3)。
+更新说明：[0.0.1-alpha-4](CHANGELOG.md)。Maven 坐标：[Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。
 
 ## 功能
 
@@ -27,7 +27,7 @@ Just Items Viewer（**JIV**）是一款面向 **Minecraft 26.1.2 / NeoForge** �
 ## 安装
 
 1. 安装 **Minecraft 26.1.2** 和 **NeoForge 26.1.2.99 或兼容 Minecraft 26.1.2 的更新版本**。
-2. 将 `jiv-26.1.2-neoforge-0.0.1-alpha-3.jar` 放入游戏实例的 `mods` 文件夹。
+2. 将 `jiv-26.1.2-neoforge-0.0.1-alpha-4.jar` 放入游戏实例的 `mods` 文件夹。
 3. 启动游戏，打开背包。
 
 设置界面和搜索功能均已内置，**无需另行安装 MezzConfig、MezzConfigGUI 或搜索库**。
@@ -101,6 +101,8 @@ Just Items Viewer（**JIV**）是一款面向 **Minecraft 26.1.2 / NeoForge** �
 在配方模式下，悬停任一材料会为所属配方的可见槽位添加背景：产物为蓝色、原料为绿色、剩余产物为紫色。当前槽位的普通悬停高亮叠加在背景上，无需按住 Shift。
 
 可替换原料沿用配方界面标识：识别到标签时显示 `#`，普通候选列表显示 `≡`。悬停可查看候选列表，当前选项带绿色边框。按住 `Shift` 聚焦提示后，可滚动列表，并用左／右键或 `R`／`U` 查询候选材料的配方和用途。不消耗原料显示与配方槽位相同的绿色 `∞`。在关联计算的书签组中，按住 `Shift` 还可查看汇总需求／产物数量。
+
+悬停书签组左侧连线（默认组也可悬停顶栏计数），可查看最终产物、所需材料与剩余产物，包括合成配方返还的容器。按住 `Shift` 对照当前容器可取出的槽位库存，排除合成输出槽；非容器界面使用玩家背包。合成产物与返还物合并显示，返还数量为黄色；产物、剩余产物与容器返还即使同类也保留各自格子。已有与缺少材料合并显示，缺少数量为红色，已有数量为绿色，同一种材料的已有与缺少部分分别占格。按住 Shift 时另显示“待合成数量”，统计下游配方仍需合成的中间材料数量，扣除库存，不包含批次取整产生的剩余产物，每个图标附带实际供给配方的机器／分类角标。独立物品／流体书签作为额外备料目标，使用保存数量，未保存数量时按 1 计算。库存对照不会增加保存的产物目标；材料与产物使用带数量的横向图标网格，超出一行后换行，不省略条目。
 
 ### 书签空间、书签页与书签组
 
