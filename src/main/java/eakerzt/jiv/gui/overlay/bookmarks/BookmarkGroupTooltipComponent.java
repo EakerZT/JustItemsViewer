@@ -48,7 +48,12 @@ public final class BookmarkGroupTooltipComponent implements ClientTooltipCompone
 		var materials = entries(inventory ? summary.amounts().missing() : summary.amounts().required(),
 				summary.materials(), inventory ? 0xffff5555 : 0xffffffff);
 		if (inventory) materials.addAll(entries(summary.amounts().covered(), summary.materials(), 0xff55ff55));
-		add("required", 0xffffff55, materials);
+		boolean complete = summary.amounts().missing().isEmpty();
+		String requiredTitle = inventory ? (complete ? "required_complete" : "required_incomplete") : "required";
+		int requiredColor = inventory ? (complete ? 0xff55ff55 : 0xffff5555) : 0xffffff55;
+		if (inventory && materials.isEmpty() && !summary.amounts().required().isEmpty())
+			sections.add(new Section(Component.translatable("jiv.bookmarks.summary." + requiredTitle), requiredColor, List.of()));
+		else add(requiredTitle, requiredColor, materials);
 		int totalHeight = 0;
 		int maximumWidth = 0;
 		for (var section : sections) {

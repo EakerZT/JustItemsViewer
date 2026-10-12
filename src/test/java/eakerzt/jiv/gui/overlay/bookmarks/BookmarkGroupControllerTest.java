@@ -4,6 +4,23 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BookmarkGroupControllerTest {
+	@Test void smoothScrolledRowsKeepGroupHitTargets() {
+		var first = new Owner("first");
+		var second = new Owner("second");
+		var firstState = new eakerzt.jiv.gui.bookmarks.BookmarkState();
+		firstState.group = 1;
+		var secondState = new eakerzt.jiv.gui.bookmarks.BookmarkState();
+		secondState.group = 2;
+		java.util.function.Function<eakerzt.jiv.gui.bookmarks.IBookmark, eakerzt.jiv.gui.bookmarks.BookmarkState>
+				states = owner -> owner == first ? firstState : secondState;
+		for (int offset = 0; offset < 18; offset++) {
+			var slots = java.util.List.of(rowSlot(100 - offset, first, 1), rowSlot(118 - offset, second, 2));
+			assertEquals(100 - offset, BookmarkGroupController.rowOrigin(slots, 100));
+			assertEquals(1, BookmarkGroupController.rowGroup(BookmarkGroupController.rowElements(slots, 0, 100), states));
+			assertEquals(2, BookmarkGroupController.rowGroup(BookmarkGroupController.rowElements(slots, 1, 100), states));
+		}
+	}
+
 	private record Owner(String id) implements eakerzt.jiv.gui.bookmarks.IBookmark {
 		public eakerzt.jiv.gui.bookmarks.BookmarkType getType() { return eakerzt.jiv.gui.bookmarks.BookmarkType.RECIPE; }
 		public eakerzt.jiv.gui.overlay.elements.IElement<?> getElement() { throw new UnsupportedOperationException(); }

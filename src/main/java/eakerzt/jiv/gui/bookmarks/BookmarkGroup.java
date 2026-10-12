@@ -6,6 +6,12 @@ public final class BookmarkGroup {
 	public boolean linked;
 	public boolean collapsed;
 
+	public void leftClick(boolean alt) {
+		if (alt) collapsed = !collapsed;
+		else if (collapsed) collapsed = false;
+		else todo = !todo;
+	}
+
 	public BookmarkGroup copy() {
 		BookmarkGroup copy = new BookmarkGroup();
 		copy.todo = todo;

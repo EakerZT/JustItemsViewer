@@ -9,8 +9,10 @@ import eakerzt.jiv.common.Internal;
 import eakerzt.jiv.common.gui.JivTooltip;
 import eakerzt.jiv.common.input.*;
 import eakerzt.jiv.common.util.ImmutableRect2i;
+import eakerzt.jiv.common.util.ImmutablePoint2i;
 import eakerzt.jiv.gui.bookmarks.*;
 import eakerzt.jiv.gui.bookmarks.planning.RecipeChain;
+import eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan;
 import eakerzt.jiv.gui.overlay.elements.IElement;
 import eakerzt.jiv.gui.overlay.ingredients.IngredientGridWithNavigation;
 
@@ -42,6 +44,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	private int summaryGroup = -1;
 	private Map<Object, Long> summaryInventory = Map.of();
 	private BookmarkList.@Nullable GroupSummary cachedSummary;
+	private BookmarkCraftPlan.@Nullable Mode summaryMode;
 
 	private boolean startGroupDrag(UserInput input) {
 		if (!Internal.getClientConfigs().getClientConfig().dragToRearrangeBookmarksEnabled().get())
@@ -151,8 +154,20 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	}
 
 	private int row(double y) {
-		var grid = grid();
-		return Math.clamp((int) ((y - grid.y()) / 18), 0, Math.max(0, grid.height() / 18 - 1));
+		return Math.clamp((int) ((y - rowOrigin()) / 18), 0, Math.max(0, rowCount() - 1));
+	}
+
+	private int rowOrigin() {
+		return rowOrigin(contents.getAllSlots(), grid().y());
+	}
+
+	static int rowOrigin(List<eakerzt.jiv.gui.overlay.ingredients.IngredientListSlot> slots, int fallback) {
+		return slots.stream().mapToInt(slot -> slot.getArea().y()).min().orElse(fallback);
+	}
+
+	private int rowCount() {
+		int origin = rowOrigin();
+		return contents.getAllSlots().stream().mapToInt(slot -> (slot.getArea().y() - origin) / 18 + 1).max().orElse(0);
 	}
 
 	private boolean gutter(double x, double y) {
@@ -165,8 +180,13 @@ public final class BookmarkGroupController implements IUserInputHandler {
 	}
 
 	private List<IElement<?>> rowElements(int row) {
-		int top = grid().y() + row * 18;
-		return contents.getAllSlots().stream()
+		return rowElements(contents.getAllSlots(), row, grid().y());
+	}
+
+	static List<IElement<?>> rowElements(
+			List<eakerzt.jiv.gui.overlay.ingredients.IngredientListSlot> slots, int row, int fallback) {
+		int top = rowOrigin(slots, fallback) + row * 18;
+		return slots.stream()
 				.filter(s -> !s.isBlocked() && s.getArea().y() == top)
 				.flatMap(s -> s.getOptionalElement().stream())
 				.toList();
@@ -211,8 +231,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		var state = bookmarks.page().groups.get(group);
 		if (state == null) return;
 		Minecraft minecraft = Minecraft.getInstance();
-		if (button == 0 && minecraft.hasAltDown()) state.collapsed = !state.collapsed;
-		else if (button == 0) state.todo = !state.todo;
+		if (button == 0) state.leftClick(minecraft.hasAltDown());
 		else if (button == 1) state.linked = !state.linked;
 		bookmarks.changed();
 	}
@@ -230,6 +249,13 @@ public final class BookmarkGroupController implements IUserInputHandler {
 			// Repeated modifier presses do not relinquish the held mouse gesture.
 			if (draggedGroup >= 0 && isModifierKey(input.getKey().getValue())) return Optional.of(this);
 			int group = hoveredGroup(x, y);
+			if (group >= 0 && keys.getCraftBookmark().isActiveAndMatchesAllowingExtraModifiers(input.getKey())
+					&& minecraft.hasShiftDown() && !minecraft.hasControlDown()) {
+				if (!input.isSimulate()) BookmarkAutoCrafting.toggle(bookmarks, group,
+						minecraft.hasAltDown() ? eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan.Mode.MISSING
+								: eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan.Mode.ALL);
+				return Optional.of(this);
+			}
 			if ((header().contains(x, y) || group > 0)
 					&& keys.getBookmark().isActiveAndMatchesAllowingExtraModifiers(input.getKey())
 					&& input.getModifiers() == 0) {
@@ -298,7 +324,9 @@ public final class BookmarkGroupController implements IUserInputHandler {
 			return Optional.of(this);
 		}
 		if (header().contains(x, y)) {
-            if (button == 0 && !minecraft.hasAltDown()) return Optional.of(this);
+			var defaultGroup = bookmarks.page().groups.get(0);
+			if (button == 0 && !minecraft.hasAltDown()
+					&& (defaultGroup == null || !defaultGroup.collapsed)) return Optional.of(this);
 			if (!input.isSimulate()) clickGroup(0, button);
 			return Optional.of(this);
 		}
@@ -307,9 +335,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 			if (!input.isSimulate()) {
 				var value = cell.get();
 				if (value.bookmark != null) {
-					var state = bookmarks.state(value.bookmark);
-					state.collapsed = !state.collapsed;
-					bookmarks.changed();
+					bookmarks.toggleRecipeCollapsed(value.bookmark);
 				}
 			}
 			return Optional.of(this);
@@ -376,7 +402,8 @@ public final class BookmarkGroupController implements IUserInputHandler {
 
 	public void draw(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
 		var grid = grid();
-		int rows = grid.height() / 18;
+		int rows = rowCount();
+		int origin = rowOrigin();
 		for (int row = 0; row < rows; ) {
 			int group = group(row), end = row;
 			while (end + 1 < rows && group(end + 1) == group) end++;
@@ -387,8 +414,8 @@ public final class BookmarkGroupController implements IUserInputHandler {
 								? 0xffaaaaaa
 								: state != null && state.linked ? 0x6645DA75 : 0xff666666;
 				int x = grid.x() - 4,
-						top = grid.y() + row * 18 + 4,
-						bottom = grid.y() + (end + 1) * 18 - 4;
+						top = Math.max(grid.y(), origin + row * 18 + 4),
+						bottom = Math.min(grid.y() + grid.height() - 1, origin + (end + 1) * 18 - 4);
 				graphics.fill(x, top, x + 3, top + 1, color);
 				graphics.fill(x, top, x + 1, bottom, color);
 				graphics.fill(x, bottom, x + 3, bottom + 1, color);
@@ -397,8 +424,8 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		}
 		if (startRow >= 0) {
 			endRow = row(mouseY);
-			int top = grid.y() + Math.min(startRow, endRow) * 18,
-					bottom = grid.y() + (Math.max(startRow, endRow) + 1) * 18;
+			int top = Math.max(grid.y(), origin + Math.min(startRow, endRow) * 18),
+					bottom = Math.min(grid.y() + grid.height(), origin + (Math.max(startRow, endRow) + 1) * 18);
 			graphics.fill(
 					grid.x() - 7,
 					top,
@@ -413,7 +440,48 @@ public final class BookmarkGroupController implements IUserInputHandler {
 								if (element instanceof BookmarkCell<?> cell)
 									drawCell(graphics, cell, slot.getRenderArea());
 							});
+		drawCollapsedGroupBorders(graphics);
 		if (draggedGroup >= 0) drawDraggedGroup(graphics, mouseX, mouseY);
+	}
+
+	private record CollapsedSlot(ImmutableRect2i area, int group, int color) {}
+
+	private void drawCollapsedGroupBorders(GuiGraphicsExtractor graphics) {
+		var slots = new HashMap<ImmutablePoint2i, CollapsedSlot>();
+		for (var slot : contents.getAllSlots()) {
+			if (slot.isBlocked()) continue;
+			var element = slot.getOptionalElement().orElse(null);
+			if (!(element instanceof BookmarkCell<?> cell) || cell.isEmptySlot()) continue;
+			var group = bookmarks.page().groups.get(cell.group);
+			if (group == null || !group.collapsed) continue;
+			var area = slot.getArea();
+			slots.put(new ImmutablePoint2i(area.x(), area.y()),
+					new CollapsedSlot(area, cell.group, group.linked ? 0x6645DA75 : 0xff666666));
+		}
+		if (slots.isEmpty()) return;
+		var grid = grid();
+		graphics.enableScissor(grid.x(), grid.y(), grid.x() + grid.width(), grid.y() + grid.height());
+		try {
+			for (var slot : slots.values()) {
+				var area = slot.area();
+				int left = area.x(), top = area.y(), right = left + area.width(), bottom = top + area.height();
+				if (!sameCollapsedGroup(slots, left - area.width(), top, slot.group()))
+					graphics.fill(left, top, left + 1, bottom, slot.color());
+				if (!sameCollapsedGroup(slots, right, top, slot.group()))
+					graphics.fill(right - 1, top, right, bottom, slot.color());
+				if (!sameCollapsedGroup(slots, left, top - area.height(), slot.group()))
+					graphics.fill(left, top, right, top + 1, slot.color());
+				if (!sameCollapsedGroup(slots, left, bottom, slot.group()))
+					graphics.fill(left, bottom - 1, right, bottom, slot.color());
+			}
+		} finally {
+			graphics.disableScissor();
+		}
+	}
+
+	private static boolean sameCollapsedGroup(Map<ImmutablePoint2i, CollapsedSlot> slots, int x, int y, int group) {
+		var neighbor = slots.get(new ImmutablePoint2i(x, y));
+		return neighbor != null && neighbor.group() == group;
 	}
 
 	private void drawDraggedGroup(GuiGraphicsExtractor graphics, int mouseX, int mouseY) {
@@ -515,8 +583,34 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		tooltip.add(Component.translatable(header().contains(x, y)
 				? "jiv.bookmarks.workspace" : group == 0 ? "jiv.bookmarks.ungrouped" : "jiv.bookmarks.group"));
 		var minecraft = Minecraft.getInstance();
+		if (minecraft.hasAltDown() && !minecraft.hasShiftDown() && !minecraft.hasControlDown()
+				&& !InputConstants.isKeyDown(minecraft.getWindow(), org.lwjgl.glfw.GLFW.GLFW_KEY_LEFT_SUPER)
+				&& !InputConstants.isKeyDown(minecraft.getWindow(), org.lwjgl.glfw.GLFW.GLFW_KEY_RIGHT_SUPER)) {
+			var groupState = bookmarks.page().groups.get(group);
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("", "left"),
+					groupState != null && groupState.collapsed ? "expand" : "layout");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("", "right"), "link");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Alt + ", "left"), "collapse");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("", "left_drag"), "group");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("", "right_drag"), "ungroup");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Ctrl + ", "drag"), "move_group");
+			var keys = Internal.getKeyMappings();
+			if (header().contains(x, y)) BookmarkHotkeyTooltip.add(tooltip, keys.getBookmark().getTranslatedKeyMessage(), "workspace_remove");
+			else if (group > 0) BookmarkHotkeyTooltip.add(tooltip, keys.getBookmark().getTranslatedKeyMessage(), "group_remove");
+			BookmarkHotkeyTooltip.add(tooltip, keys.getShowRecipe().getTranslatedKeyMessage(), "tree");
+			BookmarkHotkeyTooltip.add(tooltip, "Shift", "inventory");
+			BookmarkHotkeyTooltip.add(tooltip, "V", "pull");
+			BookmarkHotkeyTooltip.add(tooltip, "Shift + V", "pull_missing");
+			BookmarkHotkeyTooltip.add(tooltip, Component.literal("Shift + ").append(keys.getCraftBookmark().getTranslatedKeyMessage()), "craft_all");
+			BookmarkHotkeyTooltip.add(tooltip, Component.literal("Shift + Alt + ").append(keys.getCraftBookmark().getTranslatedKeyMessage()), "craft_missing");
+			tooltip.draw(graphics, x, y);
+			return;
+		}
 		var manager = Internal.getJivRuntime().getIngredientManager();
 		boolean compareInventory = minecraft.hasShiftDown();
+		var mode = !compareInventory ? null : minecraft.hasAltDown() ? BookmarkCraftPlan.Mode.MISSING : BookmarkCraftPlan.Mode.ALL;
+		if (mode != null) tooltip.add(Component.translatable(mode == BookmarkCraftPlan.Mode.MISSING
+				? "jiv.bookmarks.summary.mode_missing" : "jiv.bookmarks.summary.mode_all"));
 		var inventory = new LinkedHashMap<Object, Long>();
 		if (compareInventory && minecraft.player != null) {
 			if (minecraft.screen instanceof AbstractContainerScreen<?> container) {
@@ -531,24 +625,27 @@ public final class BookmarkGroupController implements IUserInputHandler {
 		}
 		var currentLayout = bookmarks.getElements();
 		if (cachedSummary == null || summaryGroup != group || summaryLayout != currentLayout
-				|| !summaryInventory.equals(inventory)) {
-			cachedSummary = bookmarks.groupSummary(group, inventory);
+				|| !summaryInventory.equals(inventory) || summaryMode != mode) {
+			cachedSummary = bookmarks.groupSummary(group, inventory, mode);
+			summaryMode = mode;
 			summaryGroup = group;
 			summaryLayout = currentLayout;
 			summaryInventory = Map.copyOf(inventory);
 		}
 		var summary = cachedSummary;
+		var calculation = summary.amounts().calculation();
+		if (mode == BookmarkCraftPlan.Mode.MISSING && !calculation.crafts().isEmpty()
+				&& calculation.crafts().values().stream().allMatch(batches -> batches == 0)
+				&& summary.amounts().missing().isEmpty()
+				&& !calculation.cycle() && !calculation.uncertain() && !calculation.overflow()) {
+			JivTooltip completed = new JivTooltip();
+			completed.add(Component.translatable("jiv.bookmarks.summary.products_available").withStyle(ChatFormatting.GREEN));
+			completed.draw(graphics, x, y);
+			return;
+		}
 		var component = new BookmarkGroupTooltipComponent(summary, compareInventory, manager,
 				minecraft.font, graphics.guiWidth());
 		if (component.getHeight(minecraft.font) > 0) tooltip.add(component);
-		if (!compareInventory) tooltip.add(Component.translatable("jiv.bookmarks.summary.shift"));
-		else if (summary.amounts().missing().isEmpty() && !summary.amounts().required().isEmpty())
-			tooltip.add(Component.translatable("jiv.bookmarks.summary.complete").withStyle(ChatFormatting.GREEN));
-		tooltip.add(Component.translatable("jiv.bookmarks.controls.group"));
-		tooltip.add(Component.translatable("jiv.bookmarks.controls.group_drag"));
-		if (header().contains(x, y)) tooltip.addKeyUsageComponent("jiv.bookmarks.controls.workspace_remove", Internal.getKeyMappings().getBookmark());
-		else if (group > 0) tooltip.addKeyUsageComponent("jiv.bookmarks.controls.group_extra", Internal.getKeyMappings().getBookmark());
-        tooltip.addKeyUsageComponent("jiv.bookmarks.controls.tree", Internal.getKeyMappings().getShowRecipe());
 		bookmarks
 				.calculation(group)
 				.ifPresent(
@@ -560,6 +657,7 @@ public final class BookmarkGroupController implements IUserInputHandler {
 							if (result.overflow())
 								tooltip.add(Component.translatable("jiv.bookmarks.overflow"));
 						});
+		BookmarkHotkeyTooltip.hint(tooltip);
 		tooltip.draw(graphics, x, y);
 	}
 

@@ -15,6 +15,7 @@ import eakerzt.jiv.gui.util.FocusUtil;
 import eakerzt.jiv.library.gui.ingredients.TagContentTooltipComponent;
 
 import net.minecraft.network.chat.Component;
+import net.minecraft.ChatFormatting;
 
 import org.jspecify.annotations.Nullable;
 
@@ -168,8 +169,7 @@ public final class BookmarkCell<T> implements IElement<T> {
 			IIngredientRenderer<T> renderer,
 			IIngredientHelper<T> ingredientHelper) {
 		helper.getIngredientTooltip(tooltip, getTypedIngredient(), renderer, ingredientHelper);
-		if (amount >= 0 && !reusable)
-			tooltip.add(Component.translatable("jiv.bookmarks.amount", amount));
+		addAmountTooltip(tooltip);
 		if (reusable) tooltip.add(Component.translatable("jiv.tooltip.recipe.not_consumed"));
 		if (chance < 1)
 			tooltip.add(
@@ -190,12 +190,52 @@ public final class BookmarkCell<T> implements IElement<T> {
 				candidatesTooltip.setSelectedIndex(selectedCandidateIndex);
 				tooltip.add(candidatesTooltip);
 			}
-			tooltip.add(Component.translatable("jiv.bookmarks.controls.choice"));
-			tooltip.add(
-					new eakerzt.jiv.common.gui.RecipeSlotOptionsTooltipComponent(
-							eakerzt.jiv.common.Internal.getKeyMappings().getPauseRecipeCycling()));
-		} else if (role != RecipeIngredientRole.INPUT)
-			tooltip.add(Component.translatable("jiv.bookmarks.controls.quantity"));
+		}
+		addControlsTooltip(tooltip);
+	}
+
+	public void addControlsTooltip(JivTooltip tooltip) {
+		if (!net.minecraft.client.Minecraft.getInstance().hasAltDown()) {
+			BookmarkHotkeyTooltip.hint(tooltip);
+			return;
+		}
+		if (hasCandidates()) {
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Ctrl + ", "scroll"), "choice");
+		} else if (role != RecipeIngredientRole.INPUT) {
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Ctrl + ", "scroll"), "quantity");
+			BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Ctrl + Alt + ", "scroll"), "stack_quantity");
+		}
+		if (hasCandidates() || role == RecipeIngredientRole.OUTPUT) {
+			var pause = eakerzt.jiv.common.Internal.getKeyMappings().getPauseRecipeCycling();
+			if (!pause.isUnbound()) BookmarkHotkeyTooltip.add(tooltip, pause.getTranslatedKeyMessage(), "focus");
+		}
+		BookmarkHotkeyTooltip.add(tooltip, BookmarkHotkeyTooltip.mouse("Ctrl + ", "drag"), "reorder");
+	}
+
+	public void addAmountTooltip(JivTooltip tooltip) {
+		addAmountTooltip(tooltip, getTypedIngredient());
+	}
+
+	/** Use the bookmark quantity with the displayed candidate's own stack limit. */
+	public void addAmountTooltip(JivTooltip tooltip, ITypedIngredient<?> displayedIngredient) {
+		if (amount >= 0 && !reusable)
+			tooltip.add(Component.translatable("jiv.bookmarks.amount", amountDescription(displayedIngredient))
+					.withStyle(ChatFormatting.GRAY));
+	}
+
+	private String amountDescription(ITypedIngredient<?> displayedIngredient) {
+		boolean fluid = displayedIngredient.getType().equals(
+				eakerzt.jiv.common.platform.Services.PLATFORM.getFluidHelper().getFluidIngredientType());
+		String unit = fluid ? " mB" : "";
+		String total = amount + unit;
+		if (!net.minecraft.client.Minecraft.getInstance().hasShiftDown()) return total;
+		int groupSize = fluid ? 144 : displayedIngredient.getItemStack()
+				.map(stack -> stack.getMaxStackSize()).orElse(1);
+		// NEI only expands amounts exceeding one stack; unstackable items stay as totals.
+		if (groupSize <= 1 || amount <= groupSize) return total;
+		long remainder = amount % groupSize;
+		return total + " = " + amount / groupSize + " × " + groupSize + unit
+				+ (remainder > 0 ? " + " + remainder + unit : "");
 	}
 
 	@Override

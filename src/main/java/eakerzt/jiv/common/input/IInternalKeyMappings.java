@@ -42,6 +42,7 @@ public interface IInternalKeyMappings extends IJivKeyMappings {
 
 	IJivKeyMapping getTransferRecipeBookmark();
 	IJivKeyMapping getMaxTransferRecipeBookmark();
+	IJivKeyMappingWithExtraModifiers getCraftBookmark();
 	IJivKeyMapping getQuickMove();
 	IJivKeyMapping getShareToChat();
 	IJivKeyMappingWithExtraModifiers getCopyIngredientName();

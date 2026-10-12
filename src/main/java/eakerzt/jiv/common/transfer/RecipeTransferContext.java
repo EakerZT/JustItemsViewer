@@ -42,7 +42,7 @@ public class RecipeTransferContext<R, C extends AbstractContainerMenu> implement
 		);
 	}
 
-	private RecipeTransferContext(
+	public RecipeTransferContext(
 		int transferId,
 		R recipe,
 		IRecipeType<R> recipeType,

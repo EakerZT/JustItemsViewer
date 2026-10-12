@@ -43,6 +43,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	private final IJivKeyMappingInternal toggleBookmarkOverlay;
 	private final IJivKeyMappingInternal transferRecipeBookmark;
 	private final IJivKeyMappingInternal maxTransferRecipeBookmark;
+	private final IJivKeyMappingInternal craftBookmark;
 	private final IJivKeyMappingInternal quickMove;
 	private final IJivKeyMappingInternal shareToChat;
 	private final IJivKeyMappingInternal copyIngredientName;
@@ -200,6 +201,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 			.register(registerMethod);
 
 		// Search Bar
+		craftBookmark = mouseHover.createMapping("key.jiv.craftBookmark")
+			.setContext(JivKeyConflictContext.JIV_GUI_HOVER_BOOKMARK)
+			.buildKeyboardKey(GLFW.GLFW_KEY_C)
+			.register(registerMethod);
+
 		hoveredClearSearchBar = search.createMapping("key.jiv.clearSearchBar")
 			.setContext(JivKeyConflictContext.JIV_GUI_HOVER_SEARCH)
 			.buildMouseRight()
@@ -328,6 +334,7 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 				bookmark,
 				transferRecipeBookmark,
 				maxTransferRecipeBookmark,
+				craftBookmark,
 				quickMove,
 				shareToChat,
 				copyIngredientName,
@@ -491,6 +498,11 @@ public final class InternalKeyMappings implements IInternalKeyMappings {
 	@Override
 	public IJivKeyMapping getMaxTransferRecipeBookmark() {
 		return maxTransferRecipeBookmark;
+	}
+
+	@Override
+	public IJivKeyMappingWithExtraModifiers getCraftBookmark() {
+		return craftBookmark;
 	}
 
 	@Override

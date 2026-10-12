@@ -13,6 +13,41 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BookmarkListTest {
+	@Test void clickingResultOfCollapsedGroupExpandsGroupWithoutCollapsingRecipe() {
+		var list = list();
+		var recipe = new FakeBookmark("result");
+		list.page().bookmarks.add(recipe);
+		list.state(recipe).group = 1;
+		var group = new BookmarkGroup();
+		group.collapsed = true;
+		list.page().groups.put(1, group);
+		list.toggleRecipeCollapsed(recipe);
+		assertFalse(group.collapsed);
+		assertFalse(list.state(recipe).collapsed);
+		// Subsequent clicks in the expanded group still toggle only this recipe.
+		list.toggleRecipeCollapsed(recipe);
+		assertTrue(list.state(recipe).collapsed);
+		assertFalse(group.collapsed);
+		list.toggleRecipeCollapsed(recipe);
+		assertFalse(list.state(recipe).collapsed);
+	}
+
+	@Test void expandingGroupPreservesIndependentRecipeCollapseState() {
+		var list = list();
+		var recipe = new FakeBookmark("result");
+		list.page().bookmarks.add(recipe);
+		list.state(recipe).collapsed = true;
+		list.state(recipe).group = 1;
+		var group = new BookmarkGroup();
+		group.collapsed = true;
+		list.page().groups.put(1, group);
+		list.toggleRecipeCollapsed(recipe);
+		assertFalse(group.collapsed);
+		assertTrue(list.state(recipe).collapsed);
+		list.toggleRecipeCollapsed(recipe);
+		assertFalse(list.state(recipe).collapsed);
+	}
+
 	@Test void browsingDragRestoresPreviewAndCancelReturnsToOriginalSpace() {
 		var list = list();
 		var first = new BookmarkPage(); var second = new BookmarkPage();

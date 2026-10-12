@@ -117,6 +117,7 @@ public class EventRegistration {
 			}
 		});
 		subscriptions.register(ClientTickEvent.Post.class, event -> {
+			eakerzt.jiv.gui.overlay.bookmarks.BookmarkAutoCrafting.tick();
 			if (Minecraft.getInstance().screen != null) {
 				guiEventHandler.onClientTick();
 			}

@@ -2,6 +2,28 @@
 
 [English README](README.md) | [中文 README](README-zh-CN.md)
 
+## 0.0.1-alpha-5 — 2026-10-13
+
+### English
+
+- Add bookmark-group auto-crafting for crafting-grid recipes: configurable `C` key, `Shift + C` for all products and `Shift + Alt + C` for missing products. Reuse inventory, follow dependency order, and confirm each transfer and result on the server.
+- Preview each crafting mode with `Shift` / `Shift + Alt`; show ready/not-ready material headings in green/red and a green completion message when all final products already exist.
+- Add Shift quantity breakdowns to bookmark item/fluid tooltips, pinned output previews, and replacement panels. Use each item's stack limit and 144 mB for every fluid; leave group-summary quantities as totals.
+- Replace persistent shortcut text with a compact `[Alt]` hint and one-shortcut-per-line help using NEI colors. Keep replacement-panel shortcut help below its candidate grid.
+- Outline collapsed groups, allow plain left-click to reopen them without changing layout, and fix group-bracket hit detection during smooth scrolling. Alt-clicking a collapsed group's output also reopens the group.
+- Update English/Chinese READMEs and local developer Wiki dependency examples to alpha-5. Auto-crafting requires compatible server support.
+
+### 简体中文
+
+- 新增工作台配方的书签组自动合成：合成键默认 `C`，`Shift + C` 全部合成，`Shift + Alt + C` 缺失合成；利用已有库存，按依赖执行，并逐批等待服务端确认填充和产物收取。
+- `Shift`／`Shift + Alt` 分别预览两种合成计划；材料标题以绿色／红色显示已备齐／未备齐，最终产物全部存在且无需合成时显示绿色完成提示。
+- 书签物品／流体、聚焦产物预览和替换面板支持 Shift 数量拆分说明；物品使用自身堆叠上限，所有流体统一按 144 mB 分组，组线汇总保持总量显示。
+- 常驻快捷键说明改为简短 `[Alt]` 提示；展开后每个快捷键单独一行，沿用 NEI 配色，替换面板的快捷键帮助位于候选网格下方。
+- 折叠组增加连通线框；左键可展开且保留布局，修复平滑滚动后的分组线点击识别；Alt 点击折叠组产物同样可展开整组。
+- 更新中英文 README 与本地开发者 Wiki 的 alpha-5 依赖示例；自动合成需要兼容的服务端支持。
+
+Maven Central: `io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5`.
+
 ## 0.0.1-alpha-4 — 2026-10-12
 
 ### English

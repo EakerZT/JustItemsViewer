@@ -69,9 +69,9 @@ final class BookmarkCandidateTooltip implements IGuiInputLayer {
 		var ingredient = cell.getTypedIngredient();
 		JivTooltip tooltip = new JivTooltip();
 		addIngredient(tooltip, ingredient);
-		tooltip.add(
-				net.minecraft.network.chat.Component.translatable("jiv.bookmarks.controls.choice"));
+		cell.addAmountTooltip(tooltip);
 		tooltip.add(grid);
+		cell.addControlsTooltip(tooltip);
 		grid.setMousePosition(x, y);
 		renderer.draw(graphics, tooltip);
 		grid.getTypedIngredientUnderMouse(x, y)
@@ -79,6 +79,7 @@ final class BookmarkCandidateTooltip implements IGuiInputLayer {
 						candidate -> {
 							JivTooltip detail = new JivTooltip();
 							addIngredient(detail, candidate);
+							cell.addAmountTooltip(detail, candidate);
 							graphics.nextStratum();
 							detail.draw(graphics, x, y);
 						});

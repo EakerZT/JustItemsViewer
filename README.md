@@ -8,9 +8,9 @@ Just Items Viewer (**JIV**) is an item and recipe viewer for **Minecraft 26.1.2 
 
 | Minecraft | Mod Loader | Current Version |
 | --- | --- | --- |
-| 26.1.2 | NeoForge | 0.0.1-alpha-4 |
+| 26.1.2 | NeoForge | 0.0.1-alpha-5 |
 
-Release notes: [0.0.1-alpha-4](CHANGELOG.md). Published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4).
+Release notes: [0.0.1-alpha-5](CHANGELOG.md). Maven Central: [0.0.1-alpha-5](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-5).
 
 ## Features
 
@@ -20,6 +20,7 @@ Release notes: [0.0.1-alpha-4](CHANGELOG.md). Published to [Maven Central](https
 - **Recipe chains and crafting trees**: Calculate material requirements from bookmarked recipes, inspect intermediate steps, and display crafting-medium/category badges.
 - **Lookup history**: Revisit recently viewed items without searching again.
 - **Recipe transfer**: Move ingredients from your inventory into recipe slots in supported containers.
+- **Bookmark-group auto-crafting**: Plan all or missing products, execute crafting-grid recipes using available stock, and collect results automatically.
 - **Recipe display API**: Add recipe screen extensions, native side panels, fluid amount labels, and non-consumed/chance slot markers.
 - **Built-in settings**: Customize item lists, search behavior, bookmarks, and tooltips.
 - **Cheat mode**: Obtain items directly when you have the required permissions.
@@ -27,12 +28,12 @@ Release notes: [0.0.1-alpha-4](CHANGELOG.md). Published to [Maven Central](https
 ## Installation
 
 1. Install **Minecraft 26.1.2** with **NeoForge 26.1.2.99 or a newer NeoForge release for Minecraft 26.1.2**.
-2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-4.jar` in your game instance's `mods` folder.
+2. Place `jiv-26.1.2-neoforge-0.0.1-alpha-5.jar` in your game instance's `mods` folder.
 3. Launch the game and open your inventory.
 
 Settings and search are included. **No separate MezzConfig, MezzConfigGUI, or search library installation is required.**
 
-You can browse items and view recipes with JIV installed on the client. In multiplayer, features that require server support, such as recipe transfer, also require JIV on the server. Cheat mode follows the server's permission settings.
+You can browse items and view recipes with JIV installed on the client. In multiplayer, recipe transfer and bookmark-group auto-crafting require a compatible server installation; auto-crafting requires the new alpha-5 crafting protocol. Cheat mode follows the server's permission settings.
 
 ## Getting Started
 
@@ -81,6 +82,8 @@ Hover over a slot before using a bookmark shortcut. `A` below means the configur
 | Ingredient slot: copy its displayed name | `Ctrl + C` |
 | Recipe bookmark: transfer once / as many times as possible | `Alt + Right-click` / `Ctrl + Right-click` (configurable transfer bindings may use Command on macOS) |
 | Show/hide bookmarks | `B` |
+| Bookmark tooltip: shortcut help | Hold `Alt` |
+| Bookmark tooltip: quantity details and pinned output/replacement preview | Hold `Shift` |
 
 `Ctrl + A` retains text selection when a search/text field has keyboard focus. With the mouse over an ordinary inventory/item-list slot, the recipe shortcuts do not choose an arbitrary recipe.
 
@@ -104,6 +107,20 @@ Hover a group's left bracket (or the top counter for the default group) to see f
 
 ### Subgroups and Pages
 
+Bookmark tooltips normally end with `[Alt]`, without a `[Shift]` badge. Hold Alt to expand shortcut help, with one shortcut per line: gold keys, dark-gray separators, and gray descriptions. Pinned output previews and replacement panels also show quantity descriptions; replacement-panel help stays below the candidate grid.
+
+Hold Shift over a bookmarked item or fluid to show gray quantity details as `total = groups × group size + remainder`. Items use their own stack limits, and all fluids, including gases, use 144 mB per group. Details expand only above one group when its size exceeds 1; exact multiples omit the remainder, and reusable inputs do not expand. Replacement candidates use their own stack limits. Group summaries and slot quantity overlays retain total amounts.
+
+Inventory comparison titles show green “Required materials (ready)” or red “Required materials (not ready)”. If craft-missing mode needs no crafting because every final product is already present, the tooltip only shows the green completion message.
+
+Alt + Left-click collapses a group and outlines its remaining output slots, joining adjacent edges: translucent green for linked groups and gray for ordinary groups. Left-click its bracket to expand while preserving the layout; when expanded, left-click switches layout. The default group's top counter can also expand a collapsed group with left-click. Alt + Left-click on a collapsed group's output reopens the whole group.
+
+Group-bracket and top-counter tooltips show summaries normally. Hold only `Alt` (without Shift, Ctrl, or Command) to show shortcut help instead; holding `Shift` previews craft-all inventory comparison, while `Shift + Alt` previews craft-missing comparison. Both previews use the same quantity calculations as their crafting shortcuts.
+
+In the inventory or crafting-table screen, hover a group bracket or the default group's top counter and press `Shift + C` to craft all, or `Shift + Alt + C` to craft missing items. `C` alone does nothing; the crafting key is configurable. Craft missing subtracts existing final products. Craft all follows GTNH NEI's target-multiple rule: replenish to the target when stock is below it, or advance to the next target multiple when stock meets it, rounded to whole recipe batches. Both modes reuse intermediate stock and preserve saved bookmark quantities.
+
+Auto-crafting executes crafting-grid recipes only; the inventory's 2×2 grid must fit the recipe. The server must also support JIV auto-crafting. It prioritizes available provider steps, waits for server confirmation per batch, collects results, and attempts to return tools and containers. Available steps can run even when some materials are missing. Press the crafting shortcut again or close the screen to stop; insufficient space, mismatched results, or a server timeout also stop processing. Required recipes with removed inputs, or chains with cycles, chance outputs, or quantity overflow cannot be auto-crafted. Independent item/fluid bookmarks do not select crafting recipes automatically.
+
 The seven-pixel gutter to the left of the slots controls subgroups within the current bookmark workspace. The top counter is `current workspace / total workspaces`; a second `current page / total pages` counter appears only when there is more than one content page.
 
 | Location / Action | Operation |
@@ -112,7 +129,7 @@ The seven-pixel gutter to the left of the slots controls subgroups within the cu
 | Bookmark contents | Wheel to browse the current workspace's content pages / scroll rows |
 | Drag a bookmark near a page edge | Flip/scroll through the current workspace while sorting |
 | Mode icon | Switch the default subgroup's item/recipe layout |
-| Group bracket: left-click | Switch that subgroup's item/recipe layout |
+| Group bracket: left-click | Expand a collapsed group; otherwise switch that subgroup's item/recipe layout |
 | Group bracket or center counter: right-click | Enable/disable recipe-chain calculation |
 | Group bracket or center counter: `Alt + Left-click` | Collapse/expand the subgroup |
 | Gutter: left-drag over rows | Create a subgroup or add rows to the starting subgroup |
@@ -122,6 +139,8 @@ The seven-pixel gutter to the left of the slots controls subgroups within the cu
 | Top center title/counter: `A` without modifiers | Delete the current bookmark space, including groups; switch to an adjacent space and always retain at least one empty space |
 | Group bracket or center counter: Show Recipes key (default `R`) | Open the crafting tree; follows the configured recipe key |
 | Group bracket or center counter: `V` / `Shift + V` | Pull required materials / only missing materials from a supported container |
+| Group bracket or center counter: `Shift + C` | Craft all / stop active auto-crafting |
+| Group bracket or center counter: `Shift + Alt + C` | Craft missing / stop active auto-crafting |
 
 ### Crafting Tree and Settings
 

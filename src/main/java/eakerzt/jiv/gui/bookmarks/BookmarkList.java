@@ -553,6 +553,15 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		return page().state(bookmark);
 	}
 
+	/** A visible result of a collapsed group must reopen that group before toggling its recipe. */
+	public void toggleRecipeCollapsed(IBookmark bookmark) {
+		var state = state(bookmark);
+		var group = page().groups.get(state.group);
+		if (group != null && group.collapsed) group.collapsed = false;
+		else state.collapsed = !state.collapsed;
+		changed();
+	}
+
 	public List<BookmarkPage> getPages() {
 		return List.copyOf(pages);
 	}
@@ -716,6 +725,11 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 			eakerzt.jiv.api.gui.drawable.IDrawable icon) {}
 
 	public GroupSummary groupSummary(int group, Map<Object, Long> inventory) {
+		return groupSummary(group, inventory, null);
+	}
+
+	public GroupSummary groupSummary(int group, Map<Object, Long> inventory,
+			eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan.@Nullable Mode mode) {
 		getElements();
 		var recipes = new ArrayList<RecipeChain.Recipe>();
 		var targets = new LinkedHashMap<Object, Long>();
@@ -732,7 +746,7 @@ public class BookmarkList implements IIngredientGridSource, IBookmarkManager {
 		}
 		var settings = page().groups.get(group);
 		var amounts = BookmarkGroupSummary.calculate(
-				recipes, settings != null && settings.linked, targets, inventory);
+				recipes, settings != null && settings.linked, targets, inventory, mode);
 		var containers = new LinkedHashMap<Object, Long>();
 		for (var bookmark : getGroupBookmarks(group)) {
 			// Only crafting recipes consume items according to the crafting-remainder contract.

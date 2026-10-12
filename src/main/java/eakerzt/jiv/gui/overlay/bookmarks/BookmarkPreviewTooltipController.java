@@ -157,6 +157,7 @@ public class BookmarkPreviewTooltipController
 														new BookmarkPreviewTooltip(
 																this,
 																element,
+																source.ingredient().getElement() instanceof eakerzt.jiv.gui.bookmarks.BookmarkCell<?> cell ? cell : null,
 																source::isPresentAndVisible,
 																component,
 																recipeTransferService,

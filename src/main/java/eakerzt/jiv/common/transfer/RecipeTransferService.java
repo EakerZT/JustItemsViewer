@@ -14,6 +14,9 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.util.Optional;
+import java.util.function.Consumer;
+import java.util.function.IntConsumer;
+import eakerzt.jiv.api.recipe.transfer.RecipeTransferResult;
 
 public final class RecipeTransferService {
 	private static final Logger LOGGER = LogManager.getLogger();
@@ -74,6 +77,13 @@ public final class RecipeTransferService {
 		boolean doTransfer,
 		IRecipeSlotsView recipeSlotsView
 	) {
+		return transferRecipe(screen, recipeLayout, player, maxTransfer, doTransfer, recipeSlotsView, id -> {}, result -> {});
+	}
+
+	public <C extends AbstractContainerMenu, R> Optional<IRecipeTransferError> transferRecipe(
+			AbstractContainerScreen<C> screen, IRecipeLayoutDrawable<R> recipeLayout, Player player,
+			boolean maxTransfer, boolean doTransfer, IRecipeSlotsView recipeSlotsView,
+			IntConsumer started, Consumer<RecipeTransferResult> completion) {
 		C container = screen.getMenu();
 		IRecipeCategory<R> recipeCategory = recipeLayout.getRecipeCategory();
 
@@ -94,8 +104,12 @@ public final class RecipeTransferService {
 			recipeSlotsView,
 			player,
 			maxTransfer,
-			recipeTransferLifecycleManager
+			(contextForResult, result) -> {
+				recipeTransferLifecycleManager.completeRecipeTransfer(contextForResult, result);
+				completion.accept(result);
+			}
 		);
+		if (doTransfer) started.accept(context.getTransferId());
 		if (doTransfer) {
 			recipeTransferLifecycleManager.beforeRecipeTransfer(context);
 		}

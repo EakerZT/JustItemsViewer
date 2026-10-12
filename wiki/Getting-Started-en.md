@@ -8,7 +8,7 @@ This example adds **display and lookup data only**. It does not register a Minec
 
 ## 1. Add the dependency
 
-JIV **0.0.1-alpha-4** is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). In a mod project using NeoForge ModDevGradle, add this to `build.gradle.kts`:
+JIV **0.0.1-alpha-5** is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-5). In a mod project using NeoForge ModDevGradle, add this to `build.gradle.kts`:
 
 ```kotlin
 repositories {
@@ -16,8 +16,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
-    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
+    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5")
+    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5")
 }
 ```
 
@@ -33,12 +33,12 @@ For debugging unpublished changes, build the JIV repository:
 .\gradlew.bat build
 ```
 
-Copy `build/libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar` into your mod project's `libs/` directory and use:
+Copy `build/libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar` into your mod project's `libs/` directory and use:
 
 ```kotlin
 dependencies {
-    compileOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar"))
-    runtimeOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar"))
+    compileOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar"))
+    runtimeOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar"))
 }
 ```
 

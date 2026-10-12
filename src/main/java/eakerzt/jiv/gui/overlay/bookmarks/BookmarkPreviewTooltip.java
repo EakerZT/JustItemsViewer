@@ -17,6 +17,7 @@ import eakerzt.jiv.common.input.handlers.SameElementInputHandler;
 import eakerzt.jiv.common.transfer.RecipeTransferService;
 import eakerzt.jiv.common.util.ImmutableRect2i;
 import eakerzt.jiv.gui.elements.IconButton;
+import eakerzt.jiv.gui.bookmarks.BookmarkCell;
 import eakerzt.jiv.gui.input.IClickableIngredientInternal;
 import eakerzt.jiv.gui.overlay.elements.RecipeBookmarkElement;
 import eakerzt.jiv.gui.recipes.PinnedTooltipRenderer;
@@ -27,6 +28,7 @@ import eakerzt.jiv.gui.util.FocusUtil;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.Rect2i;
+import org.jspecify.annotations.Nullable;
 
 import java.util.List;
 import java.util.Optional;
@@ -41,6 +43,7 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 
 	private final BookmarkPreviewTooltipController controller;
 	private final RecipeBookmarkElement<?, ?> element;
+	private final @Nullable BookmarkCell<?> sourceCell;
 	private final BooleanSupplier sourceVisible;
 	private final PreviewTooltipComponent<?> component;
 	private final IRecipeLayoutDrawable<?> drawable;
@@ -52,6 +55,7 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 	BookmarkPreviewTooltip(
 			BookmarkPreviewTooltipController controller,
 			RecipeBookmarkElement<?, ?> element,
+			@Nullable BookmarkCell<?> sourceCell,
 			BooleanSupplier sourceVisible,
 			PreviewTooltipComponent<?> component,
 			RecipeTransferService recipeTransferService,
@@ -59,6 +63,7 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 			int anchorY) {
 		this.controller = controller;
 		this.element = element;
+		this.sourceCell = sourceCell;
 		this.sourceVisible = sourceVisible;
 		this.component = component;
 		this.drawable = component.getRecipeLayout();
@@ -130,6 +135,15 @@ final class BookmarkPreviewTooltip implements IUserInputHandler, IMouseOverable 
 	public void draw(GuiGraphicsExtractor guiGraphics, int mouseX, int mouseY) {
 		JivTooltip tooltip = new JivTooltip();
 		this.element.getPinnedTooltip(tooltip);
+		if (sourceCell != null) {
+			JivTooltip quantity = new JivTooltip();
+			sourceCell.addAmountTooltip(quantity);
+			// Keep the source quantity above the recipe preview, alongside its ingredient details.
+			int index = 0;
+			while (index < tooltip.getLines().size() && tooltip.getLines().get(index).left().isPresent()) index++;
+			tooltip.getLines().addAll(index, quantity.getLines());
+			sourceCell.addControlsTooltip(tooltip);
+		}
 		this.component.setInteractive(mouseX, mouseY, getInteractiveWidth());
 
 		this.tooltipRenderer.draw(guiGraphics, tooltip);

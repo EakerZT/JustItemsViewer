@@ -45,6 +45,10 @@ public class PacketRecipeTransferResult extends PlayToClientPacket<PacketRecipeT
 		PENDING_RECIPE_TRANSFERS.clear();
 	}
 
+	public static void cancelPendingRecipeTransfer(int transferId) {
+		PENDING_RECIPE_TRANSFERS.remove(transferId);
+	}
+
 	@Override
 	public Type<PacketRecipeTransferResult> type() {
 		return TYPE;

@@ -10,6 +10,21 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 class BookmarkGroupSummaryTest {
+	@Test void previewModesUseDifferentFinalInventoryRules() {
+		var recipes = List.of(recipe("plate", "iron", 2, "plate", 1));
+		var stock = Map.<Object, Long>of("plate", 1L, "iron", 2L);
+		var all = BookmarkGroupSummary.calculate(recipes, true, Map.of(), stock,
+				eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan.Mode.ALL);
+		var missing = BookmarkGroupSummary.calculate(recipes, true, Map.of(), stock,
+				eakerzt.jiv.gui.bookmarks.planning.BookmarkCraftPlan.Mode.MISSING);
+		assertEquals(1L, all.calculation().crafts().get("plate"));
+		assertEquals(0L, missing.calculation().crafts().get("plate"));
+		assertEquals(Map.of("iron", 2L), all.covered());
+		assertTrue(missing.covered().isEmpty());
+		assertTrue(missing.missing().isEmpty());
+		assertEquals(Map.of("iron", 2L), missing.required());
+	}
+
 	private static RecipeChain.Recipe recipe(String id, String input, long amount, String output, long yield) {
 		return new RecipeChain.Recipe(id, List.of(new RecipeChain.Material(input, amount)),
 				List.of(new RecipeChain.Material(output, yield)), 1);

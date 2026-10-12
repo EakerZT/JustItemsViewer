@@ -3,6 +3,7 @@ package eakerzt.jiv.gui.bookmarks.planning;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import org.jspecify.annotations.Nullable;
 
 /** Inventory comparison for recipe requirements and independent shopping-list targets. */
 public record BookmarkGroupSummary(
@@ -14,6 +15,12 @@ public record BookmarkGroupSummary(
 	public static BookmarkGroupSummary calculate(
 			List<RecipeChain.Recipe> recipes, boolean linked,
 			Map<Object, Long> targets, Map<Object, Long> inventory) {
+		return calculate(recipes, linked, targets, inventory, null);
+	}
+
+	public static BookmarkGroupSummary calculate(
+			List<RecipeChain.Recipe> recipes, boolean linked,
+			Map<Object, Long> targets, Map<Object, Long> inventory, BookmarkCraftPlan.@Nullable Mode mode) {
 		var stock = new LinkedHashMap<>(inventory);
 		var targetMissing = new LinkedHashMap<Object, Long>();
 		var targetAvailable = new LinkedHashMap<Object, Long>();
@@ -25,7 +32,8 @@ public record BookmarkGroupSummary(
 			if (amount > taken) targetMissing.put(key, amount - taken);
 		});
 		var total = RecipeChain.calculate(recipes, linked);
-		var calculation = inventory.isEmpty() ? total : RecipeChain.calculate(recipes, linked, stock);
+		var calculation = mode != null ? BookmarkCraftPlan.calculate(recipes, linked, stock, mode)
+				: inventory.isEmpty() ? total : RecipeChain.calculate(recipes, linked, stock);
 		var required = new LinkedHashMap<>(total.inputs());
 		targets.forEach((key, amount) -> required.merge(key, amount, RecipeChain::add));
 		var missing = new LinkedHashMap<>(calculation.inputs());

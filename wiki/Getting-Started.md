@@ -8,10 +8,10 @@
 
 ## 1. 添加开发依赖
 
-JIV **0.0.1-alpha-4** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。Maven 坐标为：
+JIV **0.0.1-alpha-5** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-5)。Maven 坐标为：
 
 ```text
-io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4
+io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5
 ```
 
 在使用 NeoForge ModDevGradle 的模组工程中添加以下依赖，即可从 Maven Central 获取：
@@ -22,8 +22,8 @@ repositories {
 }
 
 dependencies {
-    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
-    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4")
+    compileOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5")
+    runtimeOnly("io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-5")
 }
 ```
 
@@ -37,12 +37,12 @@ dependencies {
 .\gradlew.bat build
 ```
 
-将 `build/libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar` 复制到自己的模组工程 `libs/` 目录，再使用：
+将 `build/libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar` 复制到自己的模组工程 `libs/` 目录，再使用：
 
 ```kotlin
 dependencies {
-    compileOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar"))
-    runtimeOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-4.jar"))
+    compileOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar"))
+    runtimeOnly(files("libs/jiv-26.1.2-neoforge-0.0.1-alpha-5.jar"))
 }
 ```
 

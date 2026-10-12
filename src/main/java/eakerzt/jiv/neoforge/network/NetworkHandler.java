@@ -7,6 +7,8 @@ import eakerzt.jiv.common.network.IConnectionToClient;
 import eakerzt.jiv.common.network.IConnectionToServer;
 import eakerzt.jiv.common.network.ServerPacketContext;
 import eakerzt.jiv.common.network.packets.PacketCheatPermission;
+import eakerzt.jiv.common.network.packets.PacketBookmarkCraft;
+import eakerzt.jiv.common.network.packets.PacketBookmarkCraftResult;
 import eakerzt.jiv.common.network.packets.PacketDeletePlayerItem;
 import eakerzt.jiv.common.network.packets.PacketGiveItemStack;
 import eakerzt.jiv.common.network.packets.PacketRecipeTransferCountedWithResult;
@@ -47,6 +49,8 @@ public class NetworkHandler {
 			ev.registrar(this.protocolVersion)
 				.executesOn(HandlerThread.MAIN)
 				.optional()
+				.playToServer(PacketBookmarkCraft.TYPE, PacketBookmarkCraft.STREAM_CODEC, wrapServerHandler(PacketBookmarkCraft::process))
+				.playToClient(PacketBookmarkCraftResult.TYPE, PacketBookmarkCraftResult.STREAM_CODEC, wrapClientHandler(PacketBookmarkCraftResult::process))
 				.playToServer(PacketDeletePlayerItem.TYPE, PacketDeletePlayerItem.STREAM_CODEC, wrapServerHandler(PacketDeletePlayerItem::process))
 				.playToServer(PacketGiveItemStack.TYPE, PacketGiveItemStack.STREAM_CODEC, wrapServerHandler(PacketGiveItemStack::process))
 				.playToServer(PacketRecipeTransfer.TYPE, PacketRecipeTransfer.STREAM_CODEC, wrapServerHandler(PacketRecipeTransfer::process))
