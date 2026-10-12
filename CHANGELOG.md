@@ -20,6 +20,9 @@
 - 修复配方填充的库存处理和书签分页锚点。
 - 更新开发者 Wiki 依赖示例，移除 API 文档中的 alpha 版本适用限制。
 
+Published to Maven Central: `io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4`.
+已发布到 Maven Central：`io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4`。
+
 ## 0.0.1-alpha-3 — 2026-10-08
 
 ### English

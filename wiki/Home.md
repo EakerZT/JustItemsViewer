@@ -10,9 +10,9 @@ Integrate JIV with your NeoForge mod: recipes, ingredients, GUIs, transfer, sear
 
 ## Maven Central / 获取依赖
 
-JIV uses the following [Maven Central] coordinates(https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). Add the following dependencies to your NeoForge ModDevGradle project.
+JIV is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). Add the following dependencies to your NeoForge ModDevGradle project.
 
-在 NeoForge ModDevGradle 工程中使用以下 Maven Central 坐标；发布同步前可按快速开始中的本地 JAR 方式接入：
+在 NeoForge ModDevGradle 工程中添加以下 Maven Central 依赖即可获取：
 
 ```kotlin
 repositories {

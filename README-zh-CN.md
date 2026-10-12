@@ -10,7 +10,7 @@ Just Items Viewer（**JIV**）是一款面向 **Minecraft 26.1.2 / NeoForge** �
 | --- | --- | --- |
 | 26.1.2 | NeoForge | 0.0.1-alpha-4 |
 
-更新说明：[0.0.1-alpha-4](CHANGELOG.md)。Maven 坐标：[Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。
+更新说明：[0.0.1-alpha-4](CHANGELOG.md)。已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。
 
 ## 功能
 

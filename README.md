@@ -10,7 +10,7 @@ Just Items Viewer (**JIV**) is an item and recipe viewer for **Minecraft 26.1.2 
 | --- | --- | --- |
 | 26.1.2 | NeoForge | 0.0.1-alpha-4 |
 
-Release notes: [0.0.1-alpha-4](CHANGELOG.md). Maven coordinates: [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4).
+Release notes: [0.0.1-alpha-4](CHANGELOG.md). Published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4).
 
 ## Features
 

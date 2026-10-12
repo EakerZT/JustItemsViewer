@@ -31,7 +31,7 @@
 
 ## 文档与源码
 
-JIV **0.0.1-alpha-4** 的 [Maven Central] 坐标如下(https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)，完整依赖配置见[快速开始](Getting-Started.md)。
+JIV **0.0.1-alpha-4** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)，完整依赖配置见[快速开始](Getting-Started.md)。
 
 - [完整入门示例源码](Examples.md)
 - [JIV 公共 API 源码](https://github.com/EakerZT/JustItemsViewer/tree/main/src/main/java/eakerzt/jiv/api)

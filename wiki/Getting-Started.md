@@ -8,7 +8,7 @@
 
 ## 1. 添加开发依赖
 
-JIV **0.0.1-alpha-4** 的 [Maven Central] 坐标如下(https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。Maven 坐标为：
+JIV **0.0.1-alpha-4** 已发布到 [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4)。Maven 坐标为：
 
 ```text
 io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4

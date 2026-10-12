@@ -32,7 +32,7 @@ Use the public API. Implementation classes in `common`, `library`, and `gui`, an
 
 ## Dependency and source
 
-Maven coordinates for this release: [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4):
+The release is available from [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4):
 
 ```text
 io.github.eakerzt:jiv-26.1.2-neoforge:0.0.1-alpha-4

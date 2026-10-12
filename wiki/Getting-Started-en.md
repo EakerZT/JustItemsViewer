@@ -8,7 +8,7 @@ This example adds **display and lookup data only**. It does not register a Minec
 
 ## 1. Add the dependency
 
-JIV **0.0.1-alpha-4** uses the following [Maven Central] coordinates(https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). In a mod project using NeoForge ModDevGradle, add this to `build.gradle.kts`:
+JIV **0.0.1-alpha-4** is published to [Maven Central](https://central.sonatype.com/artifact/io.github.eakerzt/jiv-26.1.2-neoforge/0.0.1-alpha-4). In a mod project using NeoForge ModDevGradle, add this to `build.gradle.kts`:
 
 ```kotlin
 repositories {
